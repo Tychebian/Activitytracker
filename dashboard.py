@@ -7,7 +7,8 @@ from pathlib import Path
 from flask import Flask, jsonify, render_template, request
 
 sys.path.insert(0, str(Path(__file__).parent))
-from db import DB_PATH, init_db
+from datetime import datetime
+from db import DB_PATH, init_db, get_focus_topics_with_stats
 import config as cfg
 
 PORT = 5001
@@ -160,6 +161,44 @@ def api_top_notes():
     # exclude bare category names (auto-fill defaults)
     filtered = [r for r in rows if r["note"] not in cat_names][:limit]
     return jsonify(filtered)
+
+
+@app.route("/api/focus_topics", methods=["GET"])
+def api_focus_topics_list():
+    return jsonify(get_focus_topics_with_stats())
+
+
+@app.route("/api/focus_topics", methods=["POST"])
+def api_focus_topic_add():
+    name = (request.get_json(force=True).get("name") or "").strip()
+    if not name:
+        return jsonify({"error": "name required"}), 400
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute(
+                "INSERT INTO focus_topics (name, created_at) VALUES (?, ?)",
+                (name, datetime.now().isoformat(timespec="seconds")),
+            )
+        return jsonify({"ok": True})
+    except sqlite3.IntegrityError:
+        return jsonify({"error": "already exists"}), 409
+
+
+@app.route("/api/focus_topics/<int:tid>", methods=["PUT"])
+def api_focus_topic_update(tid):
+    name = (request.get_json(force=True).get("name") or "").strip()
+    if not name:
+        return jsonify({"error": "name required"}), 400
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("UPDATE focus_topics SET name=? WHERE id=?", (name, tid))
+    return jsonify({"ok": True})
+
+
+@app.route("/api/focus_topics/<int:tid>", methods=["DELETE"])
+def api_focus_topic_delete(tid):
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("DELETE FROM focus_topics WHERE id=?", (tid,))
+    return jsonify({"ok": True})
 
 
 @app.route("/api/activities/add_manual", methods=["POST"])

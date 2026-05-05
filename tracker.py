@@ -1,13 +1,6 @@
 #!/usr/bin/env python3
-"""
-macOS menu bar activity tracker.
-
-• Single-panel dialog (tkinter): category buttons + note combobox in one window.
-• NSApp.activateIgnoringOtherApps_ fixes focus from background processes.
-• Timer resets from submission time (not the slot boundary).
-• Global hotkey ⌃⌥A triggers the dialog immediately.
-"""
-import json
+"""macOS menu bar activity tracker — osascript dialogs, resettable timer."""
+import sqlite3
 import subprocess
 import sys
 import threading
@@ -17,18 +10,16 @@ from pathlib import Path
 import rumps
 
 sys.path.insert(0, str(Path(__file__).parent))
-from db import init_db, save_activity_for_slot, get_slot_record
+from db import init_db, save_activity_for_slot, get_slot_record, DB_PATH
+from config import get_categories
 
 DIR      = Path(__file__).parent
-INTERVAL = 15 * 60          # seconds between auto-popups
-HOTKEY   = "⌃⌥A"           # displayed in the menu item label
-PYNPUT_COMBO = "<ctrl>+<alt>+a"   # pynput GlobalHotKeys format
-
+INTERVAL = 15 * 60
 APP_PATH = Path.home() / "Applications" / "ActivityTracker.app"
 PLIST    = Path.home() / "Library/LaunchAgents/com.activitytracker.tracker.plist"
 
 
-# ── LaunchAgent auto-install ───────────────────────────────────────────────────
+# ── LaunchAgent ───────────────────────────────────────────────────────────────
 
 def ensure_launch_agent():
     if PLIST.exists():
@@ -53,44 +44,102 @@ def ensure_launch_agent():
     subprocess.run(["launchctl", "load", str(PLIST)], capture_output=True)
 
 
-# ── single-panel dialog via dialog_helper.py subprocess ───────────────────────
+# ── osascript dialog ──────────────────────────────────────────────────────────
 
-def _ask_dialog(message: str, existing: dict | None = None) -> dict | None:
-    helper = DIR / "dialog_helper.py"
-    args   = [sys.executable, str(helper), message]
-    if existing:
-        args.append(json.dumps(existing, ensure_ascii=False))
-    r = subprocess.run(args, capture_output=True, text=True)
-    text = r.stdout.strip()
-    if not text:
-        return None
+def _as(s: str) -> str:
+    return s.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def _recent_notes(cat_names: list) -> list:
     try:
-        return json.loads(text)
-    except json.JSONDecodeError:
+        cutoff = (datetime.now() - timedelta(days=5)).isoformat()
+        ph = ",".join("?" * len(cat_names))
+        with sqlite3.connect(DB_PATH) as conn:
+            rows = conn.execute(
+                f"SELECT note, COUNT(*) c FROM activities "
+                f"WHERE timestamp > ? AND category IN ({ph}) AND note NOT IN ({ph}) "
+                f"GROUP BY note ORDER BY c DESC LIMIT 7",
+                (cutoff, *cat_names, *cat_names),
+            ).fetchall()
+        return [r[0] for r in rows]
+    except Exception:
+        return []
+
+
+def ask_via_osascript(prompt: str, existing: dict | None = None) -> dict | None:
+    cats   = get_categories()
+    names  = [c["name"] for c in cats]
+    if not names:
         return None
 
+    recent  = _recent_notes(names)
+    def_cat = existing["category"] if existing else names[0]
+    banner  = (f"\\n本时段已有：{_as(existing['category'])} · {_as(existing['note'])}（将覆盖）"
+               if existing else "")
 
-# ── resettable timer ───────────────────────────────────────────────────────────
+    # step 1 — choose category (activate first so dialog steals focus)
+    cats_as = "{" + ",".join(f'"{_as(n)}"' for n in names) + "}"
+    r1 = subprocess.run(["osascript", "-e", f"""
+tell application "System Events" to activate
+set catList to {cats_as}
+set chosen to choose from list catList ¬
+    with title "⏱ 活动记录" ¬
+    with prompt "{_as(prompt)}{banner}" ¬
+    default items {{"{_as(def_cat)}"}}
+if chosen is false then return "SKIP"
+return item 1 of chosen
+"""], capture_output=True, text=True)
+    category = r1.stdout.strip()
+    if r1.returncode != 0 or category in ("", "SKIP"):
+        return None
+
+    # step 2 — choose / enter note
+    note_items = recent + ["✏  自定义输入…"]
+    def_note   = (existing["note"]
+                  if existing and existing["note"] not in names
+                  else (recent[0] if recent else "✏  自定义输入…"))
+    notes_as   = "{" + ",".join(f'"{_as(n)}"' for n in note_items) + "}"
+
+    r2 = subprocess.run(["osascript", "-e", f"""
+set noteList to {notes_as}
+set chosen to choose from list noteList ¬
+    with title "⏱ {_as(category)}" ¬
+    with prompt "在做什么？（可选高频内容或自定义）" ¬
+    default items {{"{_as(def_note)}"}}
+if chosen is false then return "SKIP"
+set theNote to item 1 of chosen
+if theNote is "✏  自定义输入…" then
+    set r to display dialog "输入活动内容：" ¬
+        with title "⏱ {_as(category)}" ¬
+        default answer "" ¬
+        buttons {{"跳过", "确认"}} default button "确认"
+    if button returned of r is "跳过" then return "SKIP"
+    set theNote to text returned of r
+    if theNote is "" then set theNote to "{_as(category)}"
+end if
+return theNote
+"""], capture_output=True, text=True)
+    note = r2.stdout.strip()
+    if r2.returncode != 0 or note in ("", "SKIP"):
+        return None
+
+    return {"category": category, "note": note}
+
+
+# ── resettable timer ──────────────────────────────────────────────────────────
 
 class ResettableTimer:
-    """Fires a callback every `interval` seconds, but the countdown resets
-    after each fire (or explicit reset), measuring from the actual submission
-    time rather than the theoretical slot boundary."""
-
     def __init__(self, interval: int, callback):
         self._interval = interval
         self._callback = callback
         self._next     = datetime.now() + timedelta(seconds=interval)
         self._wake     = threading.Event()
-        self._thread   = threading.Thread(target=self._loop, daemon=True)
-        self._thread.start()
+        threading.Thread(target=self._loop, daemon=True).start()
 
     def _loop(self):
         while True:
             remaining = (self._next - datetime.now()).total_seconds()
             if remaining <= 0:
-                # Set tentative next-fire BEFORE calling callback so that
-                # if the user skips, the schedule is still maintained.
                 self._next = datetime.now() + timedelta(seconds=self._interval)
                 try:
                     self._callback()
@@ -101,94 +150,52 @@ class ResettableTimer:
                 self._wake.clear()
 
     def reset_from_now(self):
-        """Call after a successful submission to restart the 15-min countdown."""
         self._next = datetime.now() + timedelta(seconds=self._interval)
-        self._wake.set()   # interrupt the sleep immediately
-
-    @property
-    def next_fire(self) -> datetime:
-        return self._next
+        self._wake.set()
 
 
-# ── rumps app ──────────────────────────────────────────────────────────────────
+# ── rumps app ─────────────────────────────────────────────────────────────────
 
 class ActivityTracker(rumps.App):
     def __init__(self):
         super().__init__("⏱", quit_button=None)
-
-        self._dialog_lock = threading.Lock()
-        self._timer = ResettableTimer(INTERVAL, self._timer_fired)
-
-        self.menu = [
-            rumps.MenuItem(
-                f"记录当前活动  [{HOTKEY}]",
-                callback=self.prompt_activity,
-            ),
+        self._lock  = threading.Lock()
+        self._timer = ResettableTimer(INTERVAL, self._on_timer)
+        self.menu   = [
+            rumps.MenuItem("记录当前活动 …", callback=self.prompt_activity),
             rumps.MenuItem("查看 Dashboard", callback=self.open_dashboard),
             None,
-            rumps.MenuItem("退出", callback=self.quit_app),
+            rumps.MenuItem("退出",           callback=self.quit_app),
         ]
 
-        self._setup_hotkey()
-
-    # ── hotkey ─────────────────────────────────────────────────────────────────
-
-    def _setup_hotkey(self):
-        try:
-            from pynput import keyboard
-
-            def on_activate():
-                # run in its own thread to avoid blocking the pynput listener
-                threading.Thread(
-                    target=self.prompt_activity, args=(None,), daemon=True
-                ).start()
-
-            listener = keyboard.GlobalHotKeys({PYNPUT_COMBO: on_activate})
-            listener.daemon = True
-            listener.start()
-        except Exception:
-            # pynput unavailable or Input Monitoring permission not granted
-            pass
-
-    # ── timer callback ─────────────────────────────────────────────────────────
-
-    def _timer_fired(self):
+    def _on_timer(self):
         self.prompt_activity(None)
 
-    # ── core recording ─────────────────────────────────────────────────────────
-
     def prompt_activity(self, _):
-        # Prevent two concurrent dialogs (hotkey + timer firing simultaneously)
-        if not self._dialog_lock.acquire(blocking=False):
+        if not self._lock.acquire(blocking=False):
             return
         try:
             now        = datetime.now()
-            slot_min   = (now.minute // 15) * 15
-            slot_start = now.replace(minute=slot_min, second=0, microsecond=0)
+            slot_start = now.replace(minute=(now.minute // 15) * 15,
+                                     second=0, microsecond=0)
             existing   = get_slot_record(slot_start)
             existing_d = {"category": existing[1], "note": existing[2]} if existing else None
 
-            data = _ask_dialog(
+            data = ask_via_osascript(
                 f"现在 {now.strftime('%H:%M')}，你在做什么？", existing_d
             )
-
             if data:
                 save_activity_for_slot(data["category"], data["note"], slot_start)
-                # ← key change: reset the 15-min countdown from THIS moment
                 self._timer.reset_from_now()
                 try:
                     rumps.notification(
-                        title=f"✓ {data['category']}",
-                        subtitle="",
-                        message=data["note"],
-                        sound=False,
+                        title=f"✓ {data['category']}", subtitle="",
+                        message=data["note"], sound=False,
                     )
                 except Exception:
                     pass
         finally:
-            self._dialog_lock.release()
-
-    # ── menu actions ───────────────────────────────────────────────────────────
+            self._lock.release()
 
     def open_dashboard(self, _):
         app = APP_PATH if APP_PATH.exists() else Path("/Applications/ActivityTracker.app")
