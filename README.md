@@ -71,42 +71,23 @@
 
 ## 🚀 安装步骤
 
-### 1. 克隆项目
+### 方式一：DMG 一键安装（推荐）
+
+1. 在 [Releases](https://github.com/Tychebian/Activitytracker/releases) 页面下载最新 `ActivityTracker-vX.X.X.dmg`
+2. 双击挂载 DMG
+3. 双击运行 **「安装 ActivityTracker.command」**
+4. Terminal 自动完成：检测 Python → 安装依赖 → 复制 App → 配置开机自启 → 首次启动
+5. 菜单栏右上角出现 **⏱** 图标即安装成功
+
+> **多 Python 环境说明**：若你同时安装了 Homebrew、Anaconda、Miniconda 等多个 Python，安装脚本会自动选定合适的解释器并记录路径，App 启动时直接使用同一环境，无需手动配置。
+
+### 方式二：从源码运行（开发者）
 
 ```bash
-git clone https://github.com/Tychebian/Acitivtytracker.git
-cd Acitivtytracker
-```
-
-### 2. 安装依赖
-
-```bash
-pip install rumps flask pyobjc-framework-WebKit
-```
-
-或使用 requirements.txt：
-
-```bash
+git clone https://github.com/Tychebian/Activitytracker.git
+cd Activitytracker
 pip install -r requirements.txt
 pip install pyobjc-framework-WebKit
-```
-
-### 3. 一键安装（推荐）
-
-```bash
-chmod +x setup.sh
-./setup.sh
-```
-
-脚本会自动完成：
-- 检测可用 Python 环境
-- 安装所有依赖
-- 注册 **LaunchAgent**（开机自动启动）
-- 将 `ActivityTracker.app` 安装到 Applications
-
-### 4. 手动启动（可选）
-
-```bash
 python3 main_app.py
 ```
 
@@ -206,7 +187,7 @@ activity_tracker/
 
 | 版本 | 说明 |
 |------|------|
-| v1.0.1 | 新增时长追踪、可配置间隔、设置页重构、关注主题 TOP5、补录时间选择器、时间格式统一 |
+| v1.0.1 | 新增时长追踪、可配置间隔、设置页重构、关注主题 TOP5、补录时间选择器；修复多 Python 环境下安装后 App 无法启动的问题 |
 | v1.0.0 | 初始版本：菜单栏弹窗、Dashboard 按天/周/月视图、分类管理 |
 
 ---
