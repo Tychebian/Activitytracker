@@ -2,7 +2,7 @@
 
 > 一款基于《秀逗魔導士》主题的 macOS 菜单栏时间追踪工具，自动定时提醒记录当前活动，并提供完整的可视化 Dashboard。
 
-[![Version](https://img.shields.io/badge/version-v1.0.4-c8320a)](https://github.com/Tychebian/Activitytracker/releases)
+[![Version](https://img.shields.io/badge/version-v1.0.5-c8320a)](https://github.com/Tychebian/Activitytracker/releases)
 [![Platform](https://img.shields.io/badge/platform-macOS-lightgrey)](https://github.com/Tychebian/Activitytracker)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://python.org)
 
@@ -193,6 +193,7 @@ activity_tracker/
 
 | 版本 | 说明 |
 |------|------|
+| v1.0.5 | 修复按周视图编辑弹窗 detail 字段丢失及行内备注保存失败的问题 |
 | v1.0.4 | 修复补录/编辑弹窗缺少专注主题选择的问题；切换分类时同步刷新建议列表 |
 | v1.0.3 | 活动详情备注（行内编辑）；Markdown 一键导出（可粘贴给 AI 分析）；修复双弹窗 bug（PID 文件单例保护） |
 | v1.0.2 | 关注主题优先级（高/中/低）；弹窗按分类过滤主题；「按主题」独立 Tab；设置页双 Tab 重构；自动弹窗开关 |
