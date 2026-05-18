@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """macOS menu bar activity tracker — osascript dialogs, resettable timer."""
+import atexit
+import os
 import sqlite3
 import subprocess
 import sys
@@ -16,6 +18,24 @@ from config import get_categories, get_interval
 DIR      = Path(__file__).parent
 APP_PATH = Path.home() / "Applications" / "ActivityTracker.app"
 PLIST    = Path.home() / "Library/LaunchAgents/com.activitytracker.tracker.plist"
+PID_FILE = Path.home() / ".activity_tracker" / "tracker.pid"
+
+
+def _ensure_singleton():
+    """Exit immediately if another tracker instance is already running."""
+    if PID_FILE.exists():
+        try:
+            old_pid = int(PID_FILE.read_text().strip())
+            os.kill(old_pid, 0)   # signal 0 = existence check
+            # Process is alive → we are the duplicate, exit silently
+            sys.exit(0)
+        except ProcessLookupError:
+            pass   # stale PID file, continue
+        except (ValueError, OSError):
+            pass
+    PID_FILE.parent.mkdir(exist_ok=True)
+    PID_FILE.write_text(str(os.getpid()))
+    atexit.register(lambda: PID_FILE.unlink(missing_ok=True))
 
 
 # ── LaunchAgent ───────────────────────────────────────────────────────────────
@@ -245,6 +265,7 @@ class ActivityTracker(rumps.App):
 
 
 if __name__ == "__main__":
+    _ensure_singleton()
     init_db()
     ensure_launch_agent()
     ActivityTracker().run()
