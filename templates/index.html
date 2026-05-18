@@ -203,13 +203,14 @@ body::before {
    ACTIVITY ROWS
    ══════════════════ */
 .act-row {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; flex-direction: column;
   padding: 8px 12px; background: var(--parch2);
   border: 1px solid var(--border2); border-left: 3px solid;
   border-radius: 0 6px 6px 0; margin: 3px 0;
   cursor: pointer; box-shadow: var(--shadow); transition: background .1s;
 }
 .act-row:hover { background: var(--parch3); }
+.act-row-main { display: flex; align-items: center; gap: 10px; }
 .act-time { font-family: monospace; font-size: .76rem; color: var(--ink3); min-width: 38px; }
 .cat-pill {
   font-size: .66rem; font-weight: 700; padding: 2px 7px;
@@ -423,17 +424,16 @@ body::before {
 /* 推算结束时间（淡色 + 斜体表示非实际值） */
 .est-time { color: var(--ink3) !important; font-style: italic; }
 
-/* 行内 detail 备注 */
-.act-detail-row { padding: 0 10px 6px 14px; }
+/* 行内 detail 备注（在 act-row 内部第二行） */
 .act-detail-input {
   width: 100%; border: none; background: transparent;
-  font-size: .75rem; color: var(--ink2); padding: 2px 0;
-  border-bottom: 1px dashed transparent; transition: border-color .15s;
-  outline: none; font-family: inherit;
+  font-size: .75rem; color: var(--ink2);
+  padding: 4px 0 0 0; margin-top: 4px;
+  border-top: 1px dashed var(--border2);
+  outline: none; font-family: inherit; cursor: text;
 }
-.act-detail-input::placeholder { color: var(--ink3); opacity: .5; }
-.act-detail-input:hover { border-bottom-color: var(--border); }
-.act-detail-input:focus { border-bottom-color: var(--gold); color: var(--ink); }
+.act-detail-input::placeholder { color: var(--ink3); opacity: .45; font-style: italic; }
+.act-detail-input:focus { border-top-color: var(--gold); color: var(--ink); }
 
 /* 优先级徽章 */
 .prio-badge {
@@ -738,7 +738,7 @@ body::before {
     <div id="ma-cats" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px"></div>
 
     <label style="font-size:.72rem;color:var(--ink3);letter-spacing:.06em;display:block;margin-bottom:4px">活动内容</label>
-    <input id="ma-note" class="m-input" type="text" list="ma-suggestions" placeholder="输入或从高频中选择" style="margin:0"/>
+    <input id="ma-note" class="m-input" type="text" list="ma-suggestions" placeholder="选择专注主题，或直接输入" style="margin:0"/>
     <datalist id="ma-suggestions"></datalist>
 
     <div class="m-btn-row" style="margin-top:18px">
@@ -959,19 +959,20 @@ async function renderDay(){
         :`<span style="margin-left:auto"></span>`;
       return`<div class="act-row" style="border-left-color:${c}"
                onclick="openEdit(${a.id},'${sc}','${sn}','${ts}','${et}')">
-        <span class="act-time">${fmtT(ts)}</span>
-        <span style="font-size:.72rem;color:var(--ink3);margin:0 3px">—</span>
-        <span class="act-time${estimated?' est-time':''}" title="${estimated?'按弹窗间隔推算':'实际结束时间'}">${endLabel}${estimated?'*':''}</span>
-        <span class="cat-pill" style="color:${c}">${esc(a.category)}</span>
-        <span class="act-note">${esc(a.note)}</span>${prioBadge(a.note)}
-        ${cumHtml}
-        <button class="edit-btn" onclick="openEdit(${a.id},'${sc}','${sn}','${ts}','${et}');event.stopPropagation()">✎</button>
-      </div>
-      <div class="act-detail-row">
+        <div class="act-row-main">
+          <span class="act-time">${fmtT(ts)}</span>
+          <span style="font-size:.72rem;color:var(--ink3);margin:0 3px">—</span>
+          <span class="act-time${estimated?' est-time':''}" title="${estimated?'按弹窗间隔推算':'实际结束时间'}">${endLabel}${estimated?'*':''}</span>
+          <span class="cat-pill" style="color:${c}">${esc(a.category)}</span>
+          <span class="act-note">${esc(a.note)}</span>${prioBadge(a.note)}
+          ${cumHtml}
+          <button class="edit-btn" onclick="openEdit(${a.id},'${sc}','${sn}','${ts}','${et}');event.stopPropagation()">✎</button>
+        </div>
         <input class="act-detail-input" type="text"
-          placeholder="添加具体内容…"
+          placeholder="具体做了什么…"
           value="${esc(a.detail||'').replace(/'/g,'&#39;')}"
           data-id="${a.id}"
+          onclick="event.stopPropagation()"
           onblur="saveDetail(this)"
           onkeydown="if(event.key==='Enter'){this.blur();event.preventDefault();}"/>
       </div>`;
@@ -1630,20 +1631,31 @@ function openManualAdd(){
               onclick="selectMaCat('${esc(cat).replace(/'/g,"&#39;")}',this)">${esc(cat)}</button>`;
   }).join('');
 
-  api('/api/focus_topics').then(topics=>{
-    document.getElementById('ma-suggestions').innerHTML=
-      topics.filter(t=>t.total_cnt>0).map(t=>`<option value="${esc(t.name)}">`).join('');
-  }).catch(()=>{});
-
   document.getElementById('ma-note').value='';
+  _updateMaSuggestions(maCat);
   document.getElementById('manual-overlay').classList.add('open');
   setTimeout(()=>document.getElementById('ma-note').focus(),80);
+}
+
+async function _updateMaSuggestions(cat){
+  const dl=document.getElementById('ma-suggestions');
+  if(!dl) return;
+  try{
+    const topics=await api('/api/focus_topics');
+    const PRIO={'高':0,'中':1,'低':2};
+    const filtered=topics
+      .filter(t=>t.category===cat)
+      .sort((a,b)=>(PRIO[a.priority]??1)-(PRIO[b.priority]??1)||b.total_cnt-a.total_cnt);
+    dl.innerHTML=filtered.map(t=>`<option value="${esc(t.name)}">`).join('');
+  }catch(e){ dl.innerHTML=''; }
 }
 
 function selectMaCat(cat,btn){
   maCat=cat;
   document.querySelectorAll('#ma-cats .m-cat').forEach(b=>b.classList.remove('sel'));
   btn.classList.add('sel');
+  document.getElementById('ma-note').value='';
+  _updateMaSuggestions(cat);
 }
 
 function maybeCloseManual(e){
