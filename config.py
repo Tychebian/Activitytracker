@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """User-configurable category list, persisted to ~/.activity_tracker/config.json."""
 
-__version__ = "1.0.3"
+__version__ = "1.0.4"
 import json
 from pathlib import Path
 
