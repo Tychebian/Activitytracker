@@ -1441,18 +1441,27 @@ function _renderTopicsPanel(){
   const emptyHint=catTopics.length===0
     ?`<div style="color:var(--ink3);font-size:.78rem;padding:8px 0 12px">此分类下暂无关注主题</div>`:'';
 
-  // 添加主题行 — 用固定 id 避免 previousElementSibling 跨浏览器问题
-  const addInputId='topic-add-input-panel';
+  // 添加主题行 — 无 onclick 属性，改用 addEventListener（WKWebView 最可靠）
   const addRow=_selectedCat!==''?`<div style="display:flex;gap:6px;margin-top:10px;align-items:center">
-    <input id="${addInputId}" class="m-input topic-new-input" type="text" placeholder="新主题名称"
+    <input id="topic-add-input-panel" class="m-input topic-new-input" type="text" placeholder="新主题名称"
            style="margin:0;flex:1;font-size:.8rem;padding:5px 8px"
-           data-cat="${sn}"
-           onkeydown="if(event.key==='Enter')_addTopicFromPanel()"/>
-    <button class="btn-add" style="padding:5px 12px;font-size:.78rem"
-            onclick="_addTopicFromPanel()">+ 添加</button>
+           data-cat="${sn}"/>
+    <button id="btn-add-topic" class="btn-add" style="padding:5px 12px;font-size:.78rem">+ 添加</button>
   </div>`:'';
 
   el.innerHTML=header+rows+emptyHint+addRow;
+
+  // 用 addEventListener 绑定事件（比 onclick 属性更可靠）
+  if(_selectedCat!==''){
+    const _addBtn=el.querySelector('#btn-add-topic');
+    const _addInput=el.querySelector('#topic-add-input-panel');
+    if(_addBtn && _addInput){
+      _addBtn.addEventListener('click', function(){ _doAddTopic(_addInput); });
+      _addInput.addEventListener('keydown', function(e){
+        if(e.key==='Enter'){ e.preventDefault(); _doAddTopic(_addInput); }
+      });
+    }
+  }
 }
 
 async function renameCat(input){
@@ -1545,23 +1554,28 @@ async function copyExport(){
 
 function _addTopicFromPanel(){
   const el=document.getElementById('topic-add-input-panel');
-  if(el) addTopic(el);
+  if(el) _doAddTopic(el);
 }
 
-async function addTopic(inputEl){
-  const name=inputEl.value.trim();
+async function _doAddTopic(inputEl){
+  const name=(inputEl.value||'').trim();
   const cat=inputEl.dataset.cat||'';
-  if(!name)return;
-  const r=await api('/api/focus_topics',{method:'POST',
-    headers:{'Content-Type':'application/json'},body:JSON.stringify({name,category:cat})});
-  if(r.error){await customAlert(r.error);return;}
-  inputEl.value='';
-  // 短暂绿色边框反馈
-  inputEl.style.borderBottom='2px solid #2a8a50';
-  setTimeout(()=>{inputEl.style.borderBottom='';},1200);
-  await renderCatsTopics();
-  renderFocusTopics();
+  if(!name) return;
+  try {
+    const r=await api('/api/focus_topics',{method:'POST',
+      headers:{'Content-Type':'application/json'},body:JSON.stringify({name,category:cat})});
+    if(r.error){await customAlert(r.error);return;}
+    inputEl.value='';
+    inputEl.style.outline='2px solid #2a8a50';
+    setTimeout(()=>{inputEl.style.outline='';},1200);
+    await renderCatsTopics();
+    renderFocusTopics();
+  } catch(e){
+    await customAlert('添加失败：'+e.message);
+  }
 }
+
+async function addTopic(inputEl){ await _doAddTopic(inputEl); }
 
 async function renameTopic(input){
   const old=input.dataset.orig,nw=input.value.trim(),id=input.dataset.id;
