@@ -248,7 +248,7 @@ final class Database {
                    SUM(CASE WHEN a.timestamp>=? THEN 1 ELSE 0 END) AS cnt_7d
             FROM focus_topics ft
             LEFT JOIN activities a ON a.note=ft.name
-            GROUP BY ft.id ORDER BY total_mins DESC LIMIT 10
+            GROUP BY ft.id ORDER BY total_mins DESC
         """, params: [.int(interval), .text(weekAgo)])
     }
 

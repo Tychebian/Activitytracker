@@ -97,7 +97,6 @@ def get_focus_topics_with_stats():
             LEFT JOIN activities a ON a.note = ft.name
             GROUP BY ft.id
             ORDER BY total_mins DESC
-            LIMIT 10
             """,
             (iv, week_ago),
         ).fetchall()
