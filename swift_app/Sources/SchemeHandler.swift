@@ -6,7 +6,7 @@ final class SchemeHandler: NSObject, WKURLSchemeHandler {
 
     // JS patch injected before page loads:
     // moves fetch() body to X-Body-Payload header (WKWebView strips httpBody)
-    static let fetchPatchScript = """
+static let fetchPatchScript = """
 (function() {
     const _orig = window.fetch;
     window.fetch = function(url, opts) {
@@ -14,8 +14,9 @@ final class SchemeHandler: NSObject, WKURLSchemeHandler {
         const method = (opts.method || 'GET').toUpperCase();
         if (opts.body && ['POST','PUT','PATCH','DELETE'].includes(method)) {
             opts.headers = Object.assign({}, opts.headers || {});
-            opts.headers['X-Body-Payload'] = typeof opts.body === 'string'
-                ? opts.body : JSON.stringify(opts.body);
+            // Use encodeURIComponent so non-ASCII chars (e.g. Chinese) survive HTTP headers
+            const body = typeof opts.body === 'string' ? opts.body : JSON.stringify(opts.body);
+            opts.headers['X-Body-Payload'] = encodeURIComponent(body);
             opts.body = undefined;
         }
         return _orig.call(this, url, opts);
@@ -32,8 +33,9 @@ final class SchemeHandler: NSObject, WKURLSchemeHandler {
         let path   = url.path.isEmpty ? "/" : url.path
         let method = task.request.httpMethod ?? "GET"
 
-        // Body comes via custom header (see fetchPatchScript)
-        let bodyData: Data? = task.request.value(forHTTPHeaderField: "X-Body-Payload")?
+        // Body comes via custom header (percent-encoded to preserve non-ASCII chars)
+        let bodyData: Data? = task.request.value(forHTTPHeaderField: "X-Body-Payload")
+            .flatMap { $0.removingPercentEncoding }?
             .data(using: .utf8)
 
         // Root → serve index.html

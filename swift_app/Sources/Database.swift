@@ -60,6 +60,11 @@ final class Database {
         let ftCols = columnNames(table: "focus_topics")
         if !ftCols.contains("category") { exec("ALTER TABLE focus_topics ADD COLUMN category TEXT NOT NULL DEFAULT ''") }
         if !ftCols.contains("priority") { exec("ALTER TABLE focus_topics ADD COLUMN priority TEXT NOT NULL DEFAULT '中'") }
+
+        // One-time migration: Z-suffix (UTC) timestamps → local time, so SQLite
+        // julianday() arithmetic stays consistent with Python-written local-time values.
+        exec("UPDATE activities SET timestamp=datetime(timestamp,'localtime') WHERE timestamp LIKE '%Z'")
+        exec("UPDATE activities SET end_time=datetime(end_time,'localtime') WHERE end_time LIKE '%Z'")
     }
 
     private func columnNames(table: String) -> Set<String> {

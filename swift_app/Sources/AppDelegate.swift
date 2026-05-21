@@ -2,7 +2,7 @@ import AppKit
 import WebKit
 import UserNotifications
 
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     private var statusItem: NSStatusItem!
     private var dashboardWindow: NSWindow?
     private var webView: WKWebView?
@@ -21,6 +21,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ app: NSApplication) -> Bool { false }
+
+    // MARK: - WKNavigationDelegate
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        // Page loaded — nothing extra needed; JS init calls setView('day') on its own
+    }
 
     func applicationShouldHandleReopen(_ app: NSApplication, hasVisibleWindows: Bool) -> Bool {
         if !hasVisibleWindows { showDashboard() }
@@ -106,6 +111,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func showDashboard() {
         if dashboardWindow == nil {
             dashboardWindow = makeDashboard()
+        } else {
+            // Reload page so JS reinitialises from setView('day')
+            webView?.load(URLRequest(url: URL(string: "activitytracker://app/")!))
         }
         dashboardWindow?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
@@ -132,8 +140,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                                   forMainFrameOnly: true)
         cfg.userContentController.addUserScript(script)
 
+
         let wv = WKWebView(frame: win.contentView!.bounds, configuration: cfg)
         wv.autoresizingMask = [.width, .height]
+        wv.navigationDelegate = self
         win.contentView?.addSubview(wv)
 
         // Load entry point — relative fetch('/api/…') resolves to activitytracker://app/api/…
