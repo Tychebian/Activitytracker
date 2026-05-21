@@ -434,6 +434,7 @@ body::before {
 }
 .act-detail-input::placeholder { color: var(--ink3); opacity: .45; font-style: italic; }
 .act-detail-input:focus { border-top-color: var(--gold); color: var(--ink); }
+.act-detail-input.saved { border-top-color: var(--gold); color: var(--ink); transition: border-top-color .4s; }
 
 /* 优先级徽章 */
 .prio-badge {
@@ -1199,8 +1200,9 @@ async function saveDetail(input){
   await fetch(`/api/activities/${id}/detail`,{method:'PATCH',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({detail})});
-  // 同步更新缓存
   if(window._dayActMap&&window._dayActMap[id]) window._dayActMap[id].detail=detail;
+  input.classList.add('saved');
+  setTimeout(()=>input.classList.remove('saved'),1500);
 }
 
 /* ═══════════════════════════════
