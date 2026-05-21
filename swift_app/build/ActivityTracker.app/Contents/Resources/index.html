@@ -1,0 +1,1768 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>秀逗魔導士・活動記録</title>
+<style>
+/* ═══════════════════════════════════════════════════════
+   SLAYERS — 秀逗魔導士  color system
+   Parchment · Crimson · Purple · Gold
+   ═══════════════════════════════════════════════════════ */
+:root {
+  --parch:    #f8f0df;   /* aged parchment */
+  --parch2:   #f0e4c8;
+  --parch3:   #e8d8b4;
+  --ink:      #2c1400;   /* deep ink */
+  --ink2:     #6b3810;
+  --ink3:     #a07040;
+  --crimson:  #c8320a;   /* Lina's fireball */
+  --purple:   #6b1a8a;   /* shadow magic */
+  --gold:     #c8960a;   /* spell circle */
+  --gold2:    #e0b830;
+  --blue:     #1a5fa3;   /* freeze arrow */
+  --border:   #c8a870;
+  --border2:  #e0c890;
+  --glow:     rgba(200,150,10,.25);
+  --shadow:   0 2px 8px rgba(44,20,0,.10);
+  --shadow-lg:0 6px 24px rgba(44,20,0,.18);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--parch);
+  color: var(--ink);
+  font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif;
+  min-height: 100vh;
+}
+
+/* ── parchment texture ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image:
+    radial-gradient(ellipse at 20% 10%, rgba(200,150,10,.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 90%, rgba(200,50,10,.05) 0%, transparent 50%);
+}
+
+/* ── layout ── */
+.wrap { max-width: 820px; margin: 0 auto; padding: 20px 20px 40px; position: relative; z-index: 1; }
+
+/* ══════════════════════════════
+   HEADER — magic circle + title
+   ══════════════════════════════ */
+.header {
+  text-align: center;
+  padding: 24px 0 20px;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 22px;
+  position: relative;
+}
+.header::before, .header::after {
+  content: '◆';
+  position: absolute;
+  bottom: -9px;
+  color: var(--gold);
+  font-size: .75rem;
+  background: var(--parch);
+  padding: 0 6px;
+}
+.header::before { left: calc(50% - 60px); }
+.header::after  { right: calc(50% - 60px); }
+
+.magic-emblem {
+  width: 72px; height: 72px;
+  margin: 0 auto 10px;
+  animation: spin-slow 40s linear infinite;
+}
+@keyframes spin-slow { to { transform: rotate(360deg); } }
+
+.title-band {
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+}
+.title-rune {
+  color: var(--gold); font-size: .75rem; letter-spacing: .3em; opacity: .7;
+}
+.title-main {
+  font-size: 1.55rem; font-weight: 800; letter-spacing: .12em;
+  color: var(--crimson);
+  text-shadow: 1px 1px 0 #8a2005, 0 0 12px rgba(200,50,10,.25);
+}
+.title-sub {
+  font-size: .72rem; letter-spacing: .22em; color: var(--ink3);
+  margin-top: 4px;
+}
+
+/* ── header controls row ── */
+.controls {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 10px; margin-bottom: 18px;
+}
+.tab-row { display: flex; gap: 6px; }
+.tab {
+  padding: 5px 16px; border-radius: 4px; font-size: .83rem; font-weight: 600;
+  cursor: pointer; border: 1px solid var(--border); background: var(--parch2);
+  color: var(--ink2); letter-spacing: .05em; transition: all .12s;
+}
+.tab:hover { background: var(--parch3); }
+.tab.on {
+  background: var(--crimson); color: #fff; border-color: var(--crimson);
+  box-shadow: 0 0 8px rgba(200,50,10,.35);
+}
+.settings-btn {
+  padding: 5px 10px; border-radius: 4px; border: 1px solid var(--border);
+  background: var(--parch2); color: var(--ink2); cursor: pointer;
+  font-size: .9rem; transition: all .12s;
+}
+.settings-btn:hover { background: var(--parch3); }
+
+/* ── date navigation ── */
+.nav-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 18px;
+}
+.nav-btn {
+  padding: 6px 16px; border-radius: 4px; border: 1px solid var(--border);
+  background: var(--parch2); color: var(--ink2); cursor: pointer;
+  font-size: 1rem; transition: all .12s;
+}
+.nav-btn:hover { background: var(--gold); color: #fff; border-color: var(--gold); }
+.nav-center { text-align: center; }
+.period-label { font-size: .95rem; font-weight: 700; color: var(--ink); letter-spacing: .05em; }
+.today-btn {
+  display: inline-block; margin-top: 4px; padding: 2px 12px;
+  border: 1px solid var(--gold); border-radius: 3px;
+  color: var(--gold); font-size: .72rem; font-weight: 600;
+  background: transparent; cursor: pointer; transition: all .12s; letter-spacing: .08em;
+}
+.today-btn:hover { background: var(--gold); color: #fff; }
+
+/* ══════════════════════
+   CATEGORY SUMMARY CARDS
+   ══════════════════════ */
+.cat-row {
+  display: flex; gap: 8px; margin-bottom: 14px;
+  overflow-x: auto; padding-bottom: 4px;
+}
+.cat-card {
+  flex: 1; min-width: 0;
+  background: var(--parch2);
+  border: 1px solid var(--border);
+  border-top: 3px solid;
+  border-radius: 6px;
+  padding: 9px 10px;
+  box-shadow: var(--shadow);
+  transition: box-shadow .12s;
+}
+.cat-card:hover { box-shadow: var(--shadow-lg); }
+.cat-card.dim { opacity: .4; }
+.cc-name { font-size: .68rem; font-weight: 700; letter-spacing: .06em; margin-bottom: 3px; }
+.cc-time { font-size: .95rem; font-weight: 800; }
+.cc-cnt  { font-size: .65rem; color: var(--ink3); margin-top: 1px; }
+
+/* ══════════════════
+   TOP NOTES
+   ══════════════════ */
+.section-title {
+  font-size: .68rem; font-weight: 700; letter-spacing: .15em;
+  color: var(--ink3); text-transform: uppercase;
+  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+}
+.section-title::before, .section-title::after {
+  content: ''; flex: 1; height: 1px; background: var(--border2);
+}
+.tnote-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 12px; background: var(--parch2);
+  border: 1px solid var(--border2); border-radius: 5px;
+  margin: 4px 0; box-shadow: var(--shadow);
+}
+.tnote-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.tnote-note { flex: 1; font-size: .85rem; color: var(--ink2); }
+.tnote-bar-wrap { width: 80px; height: 5px; background: var(--parch3); border-radius: 3px; overflow: hidden; }
+.tnote-bar { height: 100%; border-radius: 3px; }
+.tnote-cnt  { font-size: .75rem; font-weight: 700; min-width: 28px; text-align: right; }
+.tnote-dur  { font-size: .68rem; color: var(--ink3); min-width: 44px; text-align: right; }
+.topic-badge {
+  display: inline-block; background: var(--crimson); color: #fff;
+  border-radius: 9px; font-size: .58rem; padding: 1px 5px; margin-left: 5px;
+  vertical-align: middle; font-weight: 700; line-height: 1.5;
+}
+
+/* topics management rows */
+.stopic-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px; border: 1px solid var(--border2);
+  border-radius: 6px; margin-bottom: 6px; background: var(--parch);
+}
+.stopic-name { flex: 1; border: none; background: transparent; color: var(--ink); font-size: .87rem; outline: none; padding: 2px 4px; border-radius: 3px; }
+.stopic-name:focus { background: var(--parch3); }
+.stopic-del  { background: none; border: none; color: var(--ink3); cursor: pointer; font-size: .88rem; padding: 2px 6px; border-radius: 3px; }
+.stopic-del:hover { background: #fde8e0; color: #a02808; }
+
+/* ══════════════════
+   ACTIVITY ROWS
+   ══════════════════ */
+.act-row {
+  display: flex; flex-direction: column;
+  padding: 8px 12px; background: var(--parch2);
+  border: 1px solid var(--border2); border-left: 3px solid;
+  border-radius: 0 6px 6px 0; margin: 3px 0;
+  cursor: pointer; box-shadow: var(--shadow); transition: background .1s;
+}
+.act-row:hover { background: var(--parch3); }
+.act-row-main { display: flex; align-items: center; gap: 10px; }
+.act-time { font-family: monospace; font-size: .76rem; color: var(--ink3); min-width: 38px; }
+.cat-pill {
+  font-size: .66rem; font-weight: 700; padding: 2px 7px;
+  border-radius: 3px; background: var(--parch3);
+  white-space: nowrap; letter-spacing: .04em;
+}
+.act-note { flex: 1; font-size: .85rem; color: var(--ink2); }
+.edit-btn {
+  opacity: 0; font-size: .75rem; color: var(--ink3);
+  background: none; border: none; cursor: pointer;
+  padding: 2px 6px; border-radius: 3px; transition: opacity .1s;
+}
+.act-row:hover .edit-btn { opacity: 1; }
+.edit-btn:hover { background: var(--parch3); }
+
+/* ══════════════════
+   WEEK DAY CARDS
+   ══════════════════ */
+.week-day {
+  background: var(--parch2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px 16px; margin: 6px 0;
+  box-shadow: var(--shadow);
+}
+.week-day.today-card { border-color: var(--crimson); box-shadow: 0 0 8px rgba(200,50,10,.2); }
+.cat-bar { height: 6px; border-radius: 3px; display: flex; overflow: hidden; gap: 2px; margin-top: 6px; }
+.cat-bar-seg { border-radius: 3px; }
+
+/* ══════════════════
+   CALENDAR
+   ══════════════════ */
+.cal-grid {
+  background: var(--parch2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px; box-shadow: var(--shadow);
+}
+.cal-header { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; margin-bottom: 8px; }
+.cal-dh { text-align: center; color: var(--ink3); font-size: .67rem; padding: 2px; }
+.cal-cells { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; }
+.cal-cell {
+  aspect-ratio: 1; border-radius: 5px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 38px; transition: transform .1s, filter .1s;
+}
+.cal-cell:hover { transform: scale(1.08); filter: brightness(.92); }
+.cal-cell.today-cell { outline: 2px solid var(--crimson); outline-offset: 1px; }
+.cal-num  { font-size: .76rem; font-weight: 500; }
+.cal-cnt  { font-size: .58rem; opacity: .8; }
+
+/* ══════════════════
+   STAT CARDS (month)
+   ══════════════════ */
+.stat-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-top: 12px; }
+.stat-card {
+  background: var(--parch2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px; text-align: center; box-shadow: var(--shadow);
+}
+.stat-val { font-size: 1.15rem; font-weight: 800; color: var(--crimson); }
+.stat-lbl { font-size: .68rem; color: var(--ink3); margin-top: 2px; }
+
+/* ══════════════════
+   MODALS
+   ══════════════════ */
+.overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(44,20,0,.45); backdrop-filter: blur(3px);
+  z-index: 100; align-items: center; justify-content: center;
+}
+.overlay.open { display: flex; }
+.mbox {
+  background: var(--parch);
+  border: 2px solid var(--border);
+  border-radius: 10px; padding: 26px;
+  box-shadow: var(--shadow-lg);
+  width: 440px; max-width: 92vw;
+  position: relative;
+}
+/* decorative corner runes */
+.mbox::before {
+  content: '✦';
+  position: absolute; top: 10px; left: 14px;
+  color: var(--gold); font-size: .65rem; opacity: .6;
+}
+.mbox::after {
+  content: '✦';
+  position: absolute; top: 10px; right: 14px;
+  color: var(--gold); font-size: .65rem; opacity: .6;
+}
+.mbox-title {
+  font-size: .9rem; font-weight: 700; color: var(--ink2);
+  letter-spacing: .08em; margin-bottom: 16px; text-align: center;
+}
+.m-cat {
+  padding: 5px 12px; border-radius: 4px;
+  border: 1px solid var(--border2); cursor: pointer;
+  font-size: .78rem; font-weight: 600; transition: all .1s;
+  background: var(--parch2); color: var(--ink2); letter-spacing: .04em;
+}
+.m-cat.sel { border-color: var(--sel-c); color: var(--sel-c); background: var(--sel-bg); }
+.m-cat:hover { border-color: var(--sel-c); color: var(--sel-c); }
+.m-input {
+  width: 100%; background: var(--parch2); border: 1px solid var(--border);
+  color: var(--ink); border-radius: 5px; padding: 8px 12px;
+  font-size: .88rem; outline: none; transition: border-color .12s; margin-top: 12px;
+}
+.m-input:focus { border-color: var(--crimson); }
+.m-btn-row { display: flex; gap: 8px; margin-top: 18px; align-items: center; }
+.btn-del  { padding: 7px 14px; border-radius: 5px; font-size: .8rem; cursor: pointer; background: #fde8e0; color: #a02808; border: 1px solid #f5c0a8; }
+.btn-cancel { padding: 7px 14px; border-radius: 5px; font-size: .8rem; cursor: pointer; background: var(--parch2); color: var(--ink2); border: 1px solid var(--border); }
+.btn-save { padding: 7px 18px; border-radius: 5px; font-size: .8rem; cursor: pointer; background: var(--crimson); color: #fff; border: none; font-weight: 700; box-shadow: 0 0 6px rgba(200,50,10,.3); }
+.btn-add  { padding: 6px 14px; border-radius: 5px; font-size: .8rem; cursor: pointer; background: var(--gold); color: #fff; border: none; font-weight: 600; white-space: nowrap; }
+
+/* settings page */
+.settings-panel {
+  background: var(--parch2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 20px; box-shadow: var(--shadow);
+}
+.settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 4px; }
+@media (max-width: 600px) { .settings-grid { grid-template-columns: 1fr; } }
+
+/* settings rows */
+.scat-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px; border: 1px solid var(--border2);
+  border-radius: 6px; margin-bottom: 6px; background: var(--parch);
+}
+.scat-dot  { width: 16px; height: 16px; border-radius: 50%; cursor: pointer; flex-shrink: 0; transition: transform .12s; }
+.scat-dot:hover { transform: scale(1.2); }
+.scat-name { flex: 1; border: none; background: transparent; color: var(--ink); font-size: .87rem; outline: none; padding: 2px 4px; border-radius: 3px; }
+.scat-name:focus { background: var(--parch3); }
+.scat-del  { background: none; border: none; color: var(--ink3); cursor: pointer; font-size: .88rem; padding: 2px 6px; border-radius: 3px; }
+.scat-del:hover { background: #fde8e0; color: #a02808; }
+
+/* color picker */
+#cpicker {
+  display: none; position: fixed;
+  background: var(--parch); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px; box-shadow: var(--shadow-lg);
+  z-index: 200; flex-wrap: wrap; width: 176px; gap: 5px;
+}
+#cpicker.open { display: flex; }
+.cp-sw { width: 22px; height: 22px; border-radius: 4px; cursor: pointer; border: 2px solid transparent; transition: transform .1s; }
+.cp-sw:hover { transform: scale(1.2); border-color: var(--gold); }
+
+/* ── settings left-right layout ── */
+.lr-layout { display: grid; grid-template-columns: 200px 1fr; gap: 16px; min-height: 260px; }
+.lr-left {
+  border-right: 1.5px solid var(--border);
+  padding-right: 14px;
+}
+.lr-right { padding-left: 4px; }
+.cat-list-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px; border-radius: 6px; cursor: pointer;
+  font-size: .82rem; font-weight: 600; letter-spacing: .04em;
+  transition: background .12s; margin-bottom: 3px;
+  border: 1.5px solid transparent;
+}
+.cat-list-item:hover { background: var(--parch3); }
+.cat-list-item.selected { background: var(--parch3); border-color: var(--border); }
+.cat-list-item .cat-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+.cat-list-item .cat-item-name { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cat-list-item .cat-item-cnt { font-size:.65rem; color:var(--ink3); font-weight:400; flex-shrink:0; }
+.cat-actions { display:flex; gap:4px; opacity:0; transition:opacity .12s; }
+.cat-list-item:hover .cat-actions { opacity:1; }
+.cat-action-btn { background:none; border:none; font-size:.75rem; color:var(--ink3); cursor:pointer; padding:1px 4px; border-radius:3px; }
+.cat-action-btn:hover { color:var(--crimson); background:#fde8e0; }
+
+/* ── settings sub-tabs ── */
+.stab-row { display: flex; gap: 6px; margin-bottom: 18px; border-bottom: 1.5px solid var(--border); padding-bottom: 10px; }
+.stab {
+  padding: 6px 18px; border-radius: 6px 6px 0 0; border: 1.5px solid transparent;
+  background: none; color: var(--ink3); font-size: .8rem; font-weight: 700;
+  letter-spacing: .06em; cursor: pointer; transition: all .15s;
+}
+.stab:hover { color: var(--ink); }
+.stab.on { background: var(--parch); border-color: var(--border); border-bottom-color: var(--parch); color: var(--crimson); margin-bottom: -1.5px; }
+
+/* ── category sections (nested) ── */
+.cat-section {
+  border-left: 3px solid var(--border);
+  border-radius: 0 6px 6px 0;
+  background: var(--parch);
+  padding: 10px 12px 10px 14px;
+  margin-bottom: 10px;
+}
+.cat-section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.topic-row {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 0 4px 16px; border-top: 1px solid var(--border2);
+}
+.topic-row:first-of-type { border-top: none; }
+.topic-name {
+  flex: 1; border: none; background: transparent; font-size: .82rem;
+  color: var(--ink); padding: 3px 5px; border-radius: 4px; min-width: 0;
+}
+.topic-name:hover { background: var(--parch3); }
+.topic-name:focus { background: var(--parch3); outline: 1px solid var(--border); }
+.topic-reassign {
+  font-size: .72rem; padding: 3px 6px; border-radius: 4px;
+  border: 1px solid var(--border); background: var(--parch3);
+  color: var(--ink3); cursor: pointer; max-width: 110px;
+}
+.topic-reassign:focus { outline: 1px solid var(--gold); }
+.topic-del { background: none; border: none; color: var(--ink3); cursor: pointer; font-size: .82rem; padding: 2px 5px; border-radius: 3px; flex-shrink: 0; }
+.topic-del:hover { color: #a02808; background: #fde8e0; }
+.topic-add-row {
+  display: flex; gap: 6px; align-items: center;
+  padding: 6px 0 2px 14px; border-top: 1px dashed var(--border);
+  margin-top: 4px;
+}
+
+/* 推算结束时间（淡色 + 斜体表示非实际值） */
+.est-time { color: var(--ink3) !important; font-style: italic; }
+
+/* 行内 detail 备注（在 act-row 内部第二行） */
+.act-detail-input {
+  width: 100%; border: none; background: transparent;
+  font-size: .75rem; color: var(--ink2);
+  padding: 4px 0 0 0; margin-top: 4px;
+  border-top: 1px dashed var(--border2);
+  outline: none; font-family: inherit; cursor: text;
+}
+.act-detail-input::placeholder { color: var(--ink3); opacity: .45; font-style: italic; }
+.act-detail-input:focus { border-top-color: var(--gold); color: var(--ink); }
+.act-detail-input.saved { border-top-color: var(--gold); color: var(--ink); transition: border-top-color .4s; }
+
+/* 优先级徽章 */
+.prio-badge {
+  display: inline-block; font-size: .6rem; font-weight: 700;
+  color: #fff; padding: 1px 5px; border-radius: 3px;
+  letter-spacing: .04em; vertical-align: middle; margin-left: 4px; flex-shrink: 0;
+}
+/* 优先级按钮组（设置面板用） */
+.prio-btn {
+  padding: 2px 8px; border-radius: 4px; border: 1.5px solid var(--border);
+  background: none; font-size: .7rem; font-weight: 700; cursor: pointer;
+  color: var(--ink3); transition: all .12s;
+}
+.prio-btn:hover { border-color: currentColor; }
+.prio-btn.active-高 { background: #c8320a; border-color: #c8320a; color: #fff; }
+.prio-btn.active-中 { background: #b07a10; border-color: #b07a10; color: #fff; }
+.prio-btn.active-低 { background: #888; border-color: #888; color: #fff; }
+
+/* ── misc ── */
+.empty-state {
+  text-align: center; color: var(--ink3); padding: 48px 0;
+  font-size: .95rem; letter-spacing: .08em;
+}
+.loading { text-align: center; color: var(--ink3); padding: 40px 0; letter-spacing: .12em; }
+.row-cnt { color: var(--ink3); font-size: .7rem; margin-bottom: 8px; letter-spacing: .06em; }
+
+/* scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--parch); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ═══════════════════════════════
+     HEADER — Slayers magic emblem
+     ═══════════════════════════════ -->
+<div class="header">
+
+  <!-- Magical spell circle SVG -->
+  <svg class="magic-emblem" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Outer ring -->
+    <circle cx="60" cy="60" r="56" stroke="#c8960a" stroke-width="1.8"/>
+    <!-- Dashed middle ring -->
+    <circle cx="60" cy="60" r="44" stroke="#c8960a" stroke-width="1" stroke-dasharray="3 2" opacity=".7"/>
+    <!-- Inner ring -->
+    <circle cx="60" cy="60" r="30" stroke="#c8320a" stroke-width="1.4"/>
+    <!-- Six-pointed star -->
+    <polygon points="60,18 68,42 94,42 72,56 80,80 60,66 40,80 48,56 26,42 52,42"
+             stroke="#c8960a" stroke-width="1.2" fill="rgba(200,150,10,.08)"/>
+    <!-- Cardinal diamonds -->
+    <polygon points="60,4  65,12 60,20 55,12" fill="#c8320a" opacity=".75"/>
+    <polygon points="116,60 108,65 100,60 108,55" fill="#c8320a" opacity=".75"/>
+    <polygon points="60,116 65,108 60,100 55,108" fill="#c8320a" opacity=".75"/>
+    <polygon points="4,60 12,65 20,60 12,55" fill="#c8320a" opacity=".75"/>
+    <!-- Diagonal small diamonds -->
+    <polygon points="17,17 21,21 17,25 13,21" fill="#c8960a" opacity=".55"/>
+    <polygon points="103,17 107,21 103,25 99,21" fill="#c8960a" opacity=".55"/>
+    <polygon points="17,103 21,107 17,111 13,107" fill="#c8960a" opacity=".55"/>
+    <polygon points="103,103 107,107 103,111 99,107" fill="#c8960a" opacity=".55"/>
+    <!-- Text path: spell names -->
+    <defs>
+      <path id="tp" d="M60,60 m-50,0 a50,50 0 1,1 100,0 a50,50 0 1,1 -100,0"/>
+    </defs>
+    <text font-size="6" fill="#c8960a" opacity=".65" letter-spacing="1.8">
+      <textPath href="#tp">FIREBALL · DRAGON SLAVE · FREEZE ARROW · ELMEKIA ·</textPath>
+    </text>
+    <!-- Center dot -->
+    <circle cx="60" cy="60" r="4" fill="#c8960a" opacity=".8"/>
+    <circle cx="60" cy="60" r="2" fill="#c8320a"/>
+  </svg>
+
+  <div class="title-band">
+    <span class="title-rune">✦ スレイヤーズ ✦</span>
+    <h1 class="title-main">活 動 記 録</h1>
+    <span class="title-rune">✦ スレイヤーズ ✦</span>
+  </div>
+  <div class="title-sub">～ ACTIVITY LOG · LINA'S ADVENTURE JOURNAL ～</div>
+  <div id="version-badge" style="font-size:.6rem;letter-spacing:.15em;color:var(--ink3);opacity:.55;margin-top:4px"></div>
+</div>
+
+<!-- controls -->
+<div class="controls">
+  <div class="tab-row">
+    <button class="tab" id="tab-day"      onclick="setView('day')">按天</button>
+    <button class="tab" id="tab-week"     onclick="setView('week')">按周</button>
+    <button class="tab" id="tab-month"    onclick="setView('month')">按月</button>
+    <button class="tab" id="tab-topic"    onclick="setView('topic')">按主题</button>
+    <button class="tab" id="tab-settings" onclick="setView('settings')">⚙ 设置</button>
+  </div>
+</div>
+
+<!-- date nav -->
+<div id="nav-row" class="nav-row">
+  <button class="nav-btn" onclick="nav(-1)">◁</button>
+  <div class="nav-center">
+    <div class="period-label" id="period-label"></div>
+    <button class="today-btn" onclick="goToday()">TODAY</button>
+  </div>
+  <button class="nav-btn" onclick="nav(1)">▷</button>
+</div>
+
+<!-- manual add button -->
+<div id="manual-add-row" style="text-align:right;margin-bottom:12px">
+  <button onclick="openManualAdd()"
+    style="padding:6px 16px;border-radius:5px;border:1px solid var(--gold);
+           background:transparent;color:var(--gold);font-size:.8rem;font-weight:700;
+           cursor:pointer;letter-spacing:.08em;transition:all .12s"
+    onmouseover="this.style.background='var(--gold)';this.style.color='#fff'"
+    onmouseout="this.style.background='transparent';this.style.color='var(--gold)'">
+    ✚ 补录往期记录
+  </button>
+</div>
+
+<!-- category summary -->
+<div class="cat-row" id="cat-summary"></div>
+
+<!-- main content -->
+<div id="content"></div>
+
+<!-- settings pane (hidden by default) -->
+<div id="settings-pane" style="display:none">
+
+  <!-- 子标签栏 -->
+  <div class="stab-row">
+    <button class="stab on" id="stab-timer"  onclick="switchSTab('timer')">⏱ 计时设置</button>
+    <button class="stab"    id="stab-cats"   onclick="switchSTab('cats')">📂 分类与主题</button>
+    <button class="stab"    id="stab-export" onclick="switchSTab('export')">📤 导出</button>
+  </div>
+
+  <!-- Tab 1: 计时设置 -->
+  <div id="stab-timer-pane" class="settings-panel" style="max-width:560px">
+    <div class="section-title" style="margin-bottom:10px">自动弹窗</div>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
+      <span style="font-size:.8rem;color:var(--ink2)">定时自动弹出记录提醒</span>
+      <button id="popup-toggle" onclick="toggleAutoPopup()"
+        style="padding:5px 18px;border-radius:20px;border:1.5px solid var(--crimson);
+               background:var(--crimson);color:#fff;font-size:.78rem;font-weight:700;
+               cursor:pointer;letter-spacing:.06em;transition:all .15s">开启</button>
+    </div>
+    <div id="interval-section">
+      <div class="section-title" style="margin-bottom:10px">弹窗间隔</div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <p style="color:var(--ink3);font-size:.72rem;margin:0">每隔多少分钟自动弹出记录提醒：</p>
+        <select id="interval-select" class="m-input" style="margin:0;width:120px;padding:6px 8px" onchange="onIntervalSelectChange()">
+          <option value="20">20 分钟</option>
+          <option value="30">30 分钟</option>
+          <option value="60">60 分钟</option>
+          <option value="custom">自定义</option>
+        </select>
+        <div id="interval-custom-wrap" style="display:none;align-items:center;gap:6px">
+          <input id="interval-custom-val" type="number" min="5" max="120"
+                 class="m-input" style="margin:0;width:72px;padding:6px 8px" placeholder="分钟"
+                 onkeydown="if(event.key==='Enter')saveCustomInterval()"/>
+          <button class="btn-save" style="padding:6px 14px;font-size:.8rem" onclick="saveCustomInterval()">确认</button>
+        </div>
+        <span id="interval-status" style="font-size:.72rem;color:var(--ink3)"></span>
+      </div>
+      <p style="color:var(--ink3);font-size:.68rem;margin-top:8px">修改后立即对下一个计时周期生效，无需重启。</p>
+    </div>
+  </div>
+
+  <!-- Tab 3: 导出 -->
+  <div id="stab-export-pane" class="settings-panel" style="display:none;max-width:560px">
+    <div class="section-title" style="margin-bottom:10px">导出活动记录</div>
+    <p style="color:var(--ink3);font-size:.72rem;margin-bottom:16px;line-height:1.6">
+      选择日期范围，导出 Markdown 格式的活动记录，<br>可直接粘贴给 ChatGPT / Claude / Gemini 做进一步分析。
+    </p>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
+      <label style="font-size:.78rem;color:var(--ink2)">开始日期</label>
+      <input id="export-start" type="date" class="m-input" style="margin:0;width:150px;padding:5px 8px"/>
+      <label style="font-size:.78rem;color:var(--ink2)">结束日期</label>
+      <input id="export-end"   type="date" class="m-input" style="margin:0;width:150px;padding:5px 8px"/>
+      <button class="btn-save" style="padding:6px 16px" onclick="generateExport()">生成</button>
+    </div>
+    <div id="export-quick-btns" style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+      <button class="btn-add" style="padding:4px 12px;font-size:.75rem" onclick="setExportRange(7)">最近 7 天</button>
+      <button class="btn-add" style="padding:4px 12px;font-size:.75rem" onclick="setExportRange(30)">最近 30 天</button>
+      <button class="btn-add" style="padding:4px 12px;font-size:.75rem" onclick="setExportThisMonth()">本月</button>
+    </div>
+    <div id="export-result" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span id="export-info" style="font-size:.72rem;color:var(--ink3)"></span>
+        <button class="btn-save" style="padding:5px 14px;font-size:.78rem" onclick="copyExport()">📋 复制全文</button>
+      </div>
+      <textarea id="export-text" readonly
+        style="width:100%;height:280px;font-size:.72rem;font-family:monospace;
+               background:var(--parch3);border:1px solid var(--border);border-radius:6px;
+               padding:10px;color:var(--ink);resize:vertical;box-sizing:border-box;line-height:1.5">
+      </textarea>
+    </div>
+  </div>
+
+  <!-- Tab 2: 分类与主题（左右布局） -->
+  <div id="stab-cats-pane" style="display:none">
+    <div class="lr-layout">
+      <!-- 左栏：分类列表 -->
+      <div class="lr-left">
+        <div style="font-size:.68rem;color:var(--ink3);letter-spacing:.08em;margin-bottom:8px">活动分类</div>
+        <div id="cat-list-panel"></div>
+        <!-- 新增分类 -->
+        <div style="display:flex;gap:6px;margin-top:10px;align-items:center">
+          <div id="add-dot" onclick="openCpicker(this,'__new__')"
+               style="width:14px;height:14px;border-radius:50%;background:var(--ink3);cursor:pointer;flex-shrink:0"></div>
+          <input id="add-input" class="m-input" type="text" placeholder="新分类名称"
+                 style="margin:0;flex:1;font-size:.78rem;padding:5px 8px"
+                 onkeydown="if(event.key==='Enter')addCat()"/>
+          <button class="btn-add" style="padding:4px 10px;font-size:.75rem" onclick="addCat()">+ 添加</button>
+        </div>
+      </div>
+      <!-- 右栏：选中分类的关注主题 -->
+      <div class="lr-right">
+        <div id="topics-panel">
+          <div style="color:var(--ink3);font-size:.8rem;text-align:center;padding:24px 0">← 选择左侧分类查看关注主题</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</div><!-- /wrap -->
+
+<!-- ═══════════════════
+     EDIT ACTIVITY MODAL
+     ═══════════════════ -->
+<div id="edit-overlay" class="overlay" onclick="maybeCloseEdit(event)">
+  <div class="mbox">
+    <div class="mbox-title">✦ 编辑记录 ✦</div>
+    <div id="edit-cats" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px"></div>
+    <input id="edit-note" class="m-input" type="text" list="edit-suggestions" placeholder="选择专注主题，或直接输入"/>
+    <datalist id="edit-suggestions"></datalist>
+
+    <!-- time row -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px">
+      <div>
+        <div style="font-size:.68rem;color:var(--ink3);letter-spacing:.06em;margin-bottom:4px">开始时间（不可更改）</div>
+        <div id="edit-start-time" style="font-family:monospace;font-size:.88rem;padding:7px 10px;background:var(--parch3);border-radius:5px;border:1px solid var(--border2);color:var(--ink2)"></div>
+      </div>
+      <div>
+        <div style="font-size:.68rem;color:var(--ink3);letter-spacing:.06em;margin-bottom:4px">结束时间</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <select id="edit-end-hour" class="m-input" style="margin:0;flex:1;padding:6px 4px" onchange="calcDuration()"></select>
+          <span style="color:var(--ink3);font-weight:700">:</span>
+          <select id="edit-end-minute" class="m-input" style="margin:0;width:58px;padding:6px 4px" onchange="calcDuration()"></select>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">
+      <div id="edit-duration" style="font-size:.78rem;color:var(--ink3)"></div>
+      <button onclick="clearEndTime()" style="background:none;border:none;font-size:.7rem;color:var(--ink3);cursor:pointer;padding:2px 6px;border-radius:3px" onmouseover="this.style.color='var(--crimson)'" onmouseout="this.style.color='var(--ink3)'">清除结束时间</button>
+    </div>
+
+    <div style="margin-top:12px">
+      <div style="font-size:.68rem;color:var(--ink3);letter-spacing:.06em;margin-bottom:4px">具体做了什么（可选）</div>
+      <textarea id="edit-detail" class="m-input" rows="2" placeholder="在这个专注主题下具体干了什么…"
+        style="margin:0;resize:vertical;font-size:.82rem;line-height:1.5"></textarea>
+    </div>
+
+    <div class="m-btn-row">
+      <button class="btn-del" onclick="deleteAct()">🗑 删除</button>
+      <div style="flex:1"></div>
+      <button class="btn-cancel" onclick="closeEdit()">取消</button>
+      <button class="btn-save" onclick="saveAct()">✓ 保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════════════════
+     MANUAL ADD MODAL
+     ═════════════════════════ -->
+<div id="manual-overlay" class="overlay" onclick="maybeCloseManual(event)">
+  <div class="mbox" style="width:480px">
+    <div class="mbox-title">✚ 补录往期记录</div>
+
+    <!-- date -->
+    <label style="font-size:.72rem;color:var(--ink3);letter-spacing:.06em;display:block;margin-bottom:4px">日期</label>
+    <input id="ma-date" type="date" class="m-input" style="margin:0 0 14px"/>
+
+    <!-- start / end time -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:6px">
+      <div>
+        <label style="font-size:.72rem;color:var(--ink3);letter-spacing:.06em;display:block;margin-bottom:4px">开始时间</label>
+        <div style="display:flex;gap:5px;align-items:center">
+          <select id="ma-sh" class="m-input" style="margin:0;flex:1;padding:6px 4px" onchange="calcMaDur()"></select>
+          <span style="color:var(--ink3);font-weight:700">:</span>
+          <select id="ma-sm" class="m-input" style="margin:0;width:58px;padding:6px 4px" onchange="calcMaDur()"></select>
+        </div>
+      </div>
+      <div>
+        <label style="font-size:.72rem;color:var(--ink3);letter-spacing:.06em;display:block;margin-bottom:4px">结束时间（可选）</label>
+        <div style="display:flex;gap:5px;align-items:center">
+          <select id="ma-eh" class="m-input" style="margin:0;flex:1;padding:6px 4px" onchange="calcMaDur()"></select>
+          <span style="color:var(--ink3);font-weight:700">:</span>
+          <select id="ma-em" class="m-input" style="margin:0;width:58px;padding:6px 4px" onchange="calcMaDur()"></select>
+        </div>
+      </div>
+    </div>
+    <div id="ma-duration" style="font-size:.78rem;color:var(--ink3);text-align:right;min-height:18px;margin-bottom:12px"></div>
+
+    <label style="font-size:.72rem;color:var(--ink3);letter-spacing:.06em;display:block;margin-bottom:6px">活动分类</label>
+    <div id="ma-cats" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px"></div>
+
+    <label style="font-size:.72rem;color:var(--ink3);letter-spacing:.06em;display:block;margin-bottom:4px">活动内容</label>
+    <input id="ma-note" class="m-input" type="text" list="ma-suggestions" placeholder="选择专注主题，或直接输入" style="margin:0"/>
+    <datalist id="ma-suggestions"></datalist>
+
+    <div class="m-btn-row" style="margin-top:18px">
+      <div style="flex:1"></div>
+      <button class="btn-cancel" onclick="closeManualAdd()">取消</button>
+      <button class="btn-save" onclick="submitManualAdd()">✓ 补录</button>
+    </div>
+  </div>
+</div>
+
+<!-- color picker -->
+<div id="cpicker"></div>
+
+<!-- ═══════════════════════
+     CUSTOM CONFIRM MODAL
+     ═══════════════════════ -->
+<div id="confirm-overlay"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);
+            z-index:400;align-items:center;justify-content:center">
+  <div style="background:var(--parch);border-radius:10px;padding:24px 28px;
+              max-width:360px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.25)">
+    <div id="confirm-msg"
+         style="font-size:.88rem;color:var(--ink);line-height:1.6;margin-bottom:20px;
+                white-space:pre-wrap"></div>
+    <div style="display:flex;justify-content:flex-end;gap:10px">
+      <button class="btn-cancel" onclick="_confirmResolve(false)">取消</button>
+      <button id="confirm-ok-btn" class="btn-del" onclick="_confirmResolve(true)">确认</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════
+   STATE
+   ═══════════════════════════════ */
+let CATS=[], COLORS={}, IV=20, AUTO_POPUP=true, TOPIC_PRIORITIES={};
+let view='day', cur=today();
+let editId=null, editCat=null, editTimestamp=null;
+let cpTarget=null, cpOldName=null, newCatColor='#c8320a';
+
+const PALETTE=[
+  "#c8320a","#1a5fa3","#6b1a8a","#b07a10","#c83264",
+  "#2a8a50","#c87820","#1a7a8a","#8a3a10","#5a1a6b",
+  "#a05010","#105a8a","#8a104a","#4a8a10","#c84820"
+];
+
+/* ═══════════════════════════════
+   UTILS
+   ═══════════════════════════════ */
+function today(){const d=new Date();d.setHours(0,0,0,0);return d;}
+function goToday(){cur=today();render();}
+function fd(d){return`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;}
+function p2(n){return String(n).padStart(2,'0');}
+function fmtT(iso){return new Date(iso).toLocaleTimeString('zh',{hour:'2-digit',minute:'2-digit'});}
+function esc(s){const d=document.createElement('div');d.appendChild(document.createTextNode(s));return d.innerHTML;}
+async function api(url,opts){
+  const r=await fetch(url,opts);
+  if(!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+}
+function cc(cat){return COLORS[cat]||'#c8960a';}
+function fmtDur(mins){if(!mins||mins<=0)return '—';if(mins<60)return mins+'分钟';const h=Math.floor(mins/60),r=mins%60;return r?`${h}小时${r}分钟`:`${h}小时`;}
+function fmtDurEn(mins){if(!mins||mins<=0)return '—';if(mins<60)return mins+'min';const h=Math.floor(mins/60),r=mins%60;return r?`${h}h${r}m`:`${h}h`;}
+function actDur(a){
+  if(a.end_time){const m=Math.round((new Date(a.end_time)-new Date(a.timestamp))/60000);return Math.max(1,m);}
+  return IV;
+}
+function toLocalISO(d){const p=n=>String(n).padStart(2,'0');return`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:00`;}
+function lighten(hex){
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return`rgba(${r},${g},${b},.12)`;
+}
+
+/* ═══════════════════════════════
+   META
+   ═══════════════════════════════ */
+async function loadMeta(){
+  const [d,ic,ap]=await Promise.all([api('/api/meta'),api('/api/config/interval'),api('/api/config/auto_popup')]);
+  CATS=d.categories; COLORS=d.colors; IV=ic.interval||20; AUTO_POPUP=ap.enabled!==false;
+  TOPIC_PRIORITIES=d.topic_priorities||{};
+  const vb=document.getElementById('version-badge');
+  if(vb&&d.version) vb.textContent=`v${d.version}`;
+}
+
+/* WKWebView 不支持原生 confirm/alert，用自定义弹窗替代 */
+let _confirmResolve=null;
+function customConfirm(msg, okLabel='确认'){
+  return new Promise(resolve=>{
+    document.getElementById('confirm-msg').textContent=msg;
+    document.getElementById('confirm-ok-btn').textContent=okLabel;
+    const el=document.getElementById('confirm-overlay');
+    el.style.display='flex';
+    _confirmResolve=v=>{ el.style.display='none'; _confirmResolve=null; resolve(v); };
+  });
+}
+function customAlert(msg){
+  return new Promise(resolve=>{
+    document.getElementById('confirm-msg').textContent=msg;
+    document.getElementById('confirm-ok-btn').textContent='好的';
+    const cancelBtn=document.querySelector('#confirm-overlay .btn-cancel');
+    cancelBtn.style.display='none';
+    const el=document.getElementById('confirm-overlay');
+    el.style.display='flex';
+    _confirmResolve=()=>{ el.style.display='none'; cancelBtn.style.display=''; _confirmResolve=null; resolve(); };
+  });
+}
+
+function prioBadge(note){
+  const p=TOPIC_PRIORITIES[note];
+  if(!p||p==='低') return '';
+  const cfg={'高':['#c8320a','高'],'中':['#b07a10','中']};
+  const [color,label]=cfg[p]||[];
+  if(!color) return '';
+  return `<span class="prio-badge" style="background:${color}">${label}</span>`;
+}
+
+/* ═══════════════════════════════
+   TABS / NAV
+   ═══════════════════════════════ */
+function setView(v){
+  view=v;
+  const isSets  = v==='settings';
+  const isTopic = v==='topic';
+  ['day','week','month','topic','settings'].forEach(x=>{
+    document.getElementById('tab-'+x).className='tab'+(x===v?' on':'');
+  });
+  // nav-row / manual-add-row / cat-summary: 仅在 day/week/month 显示
+  ['nav-row','manual-add-row','cat-summary'].forEach(id=>{
+    const e=document.getElementById(id);
+    if(e) e.style.display=(isSets||isTopic)?'none':'';
+  });
+  document.getElementById('content').style.display=isSets?'none':'';
+  document.getElementById('settings-pane').style.display=isSets?'block':'none';
+  if(isSets){ renderSTab1(); renderCatsTopics(); }
+  else render();
+}
+function nav(dir){
+  if(view==='day')cur.setDate(cur.getDate()+dir);
+  else if(view==='week')cur.setDate(cur.getDate()+dir*7);
+  else cur.setMonth(cur.getMonth()+dir);
+  render();
+}
+
+/* ═══════════════════════════════
+   CATEGORY SUMMARY
+   ═══════════════════════════════ */
+function renderSummary(stats){
+  document.getElementById('cat-summary').innerHTML=CATS.map(cat=>{
+    const s=stats[cat]||{mins:0,cnt:0},c=cc(cat);
+    return`<div class="cat-card${s.cnt===0?' dim':''}" style="border-top-color:${c}">
+      <div class="cc-name" style="color:${c}">${esc(cat)}</div>
+      <div class="cc-time" style="color:${c}">${fmtDur(s.mins)}</div>
+      <div class="cc-cnt">${s.cnt}次</div>
+    </div>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════
+   TOPIC VIEW (按主题 tab)
+   ═══════════════════════════════ */
+async function renderTopic(){
+  const el=document.getElementById('content');
+  el.innerHTML='<div class="loading">✦ 詠唱中 · Loading ✦</div>';
+  const all=await api('/api/focus_topics');
+  if(!all.length){
+    el.innerHTML=`<div class="empty-state">暂无关注主题<br>
+      <span style="font-size:.75rem;opacity:.6">前往「⚙ 设置 → 分类与主题」添加</span></div>`;
+    return;
+  }
+
+  // 按分类分组，组内按 total_mins 降序
+  const groups={};
+  all.forEach(t=>{ const k=t.category||'未分类'; (groups[k]=groups[k]||[]).push(t); });
+  Object.values(groups).forEach(g=>g.sort((a,b)=>b.total_mins-a.total_mins));
+
+  const maxMins=Math.max(1,...all.map(t=>t.total_mins));
+
+  let html='';
+  for(const [catName,topics] of Object.entries(groups)){
+    const catColor=COLORS[catName]||'var(--ink3)';
+    html+=`<div style="margin-bottom:22px">
+      <div class="section-title" style="margin-bottom:10px;color:${catColor}">${esc(catName)}</div>
+      ${topics.map((t,i)=>{
+        const pct=Math.round(t.total_mins/maxMins*100);
+        const badge=t.cnt_7d>0?`<span class="topic-badge">${t.cnt_7d}</span>`:'';
+        const rank=i+1;
+        const pb=prioBadge(t.name);
+        return`<div class="tnote-row">
+          <span style="font-size:.7rem;color:var(--ink3);width:16px;text-align:right;flex-shrink:0">${rank}</span>
+          <div class="tnote-dot" style="background:${catColor}"></div>
+          <div class="tnote-note">${esc(t.name)}${pb}${badge}</div>
+          <div class="tnote-bar-wrap"><div class="tnote-bar" style="background:${catColor};width:${pct}%"></div></div>
+          <div class="tnote-cnt" style="color:var(--ink2)">${t.total_cnt}次</div>
+          <div class="tnote-dur">${fmtDur(t.total_mins)}</div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+  el.innerHTML=html;
+}
+
+/* 兼容 settings 面板里仍调用 renderFocusTopics 的地方 */
+async function renderFocusTopics(){ if(view==='topic') await renderTopic(); }
+
+/* ═══════════════════════════════
+   DAY VIEW — 流水账
+   ═══════════════════════════════ */
+async function renderDay(){
+  const start=fd(cur),end=fd(new Date(cur.getTime()+86400000));
+  document.getElementById('period-label').textContent=
+    cur.toLocaleDateString('zh',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
+
+  const [acts,stats]=await Promise.all([
+    api(`/api/activities?start=${start}&end=${end}`),
+    api(`/api/category_stats?start=${start}&end=${end}`),
+  ]);
+  renderSummary(stats);
+
+  const el=document.getElementById('content');
+  if(!acts.length){
+    el.innerHTML='<div class="empty-state">光よ、闇を照らせ！<br><span style="font-size:.75rem;opacity:.6">本日はまだ記録なし ·· No quests today</span></div>';
+    return;
+  }
+
+  // 每条记录的实际/推算时长（分钟）
+  function actMins(a){
+    if(a.end_time) return Math.max(1,Math.round((new Date(a.end_time)-new Date(a.timestamp))/60000));
+    return IV;
+  }
+  // 推算结束时间字符串（用于显示）
+  function calcEndISO(a){
+    if(a.end_time) return a.end_time;
+    return new Date(new Date(a.timestamp).getTime()+IV*60000).toISOString();
+  }
+
+  // 每个 note：累计分钟数 & 最后一条的索引
+  const noteCum={}, noteLastIdx={};
+  acts.forEach((a,i)=>{
+    noteCum[a.note]=(noteCum[a.note]||0)+actMins(a);
+    noteLastIdx[a.note]=i;
+  });
+
+  // 缓存供 openEdit 读取 detail
+  window._dayActMap={};
+  acts.forEach(a=>{ window._dayActMap[a.id]=a; });
+
+  el.innerHTML=`<div class="row-cnt">${acts.length} 条记录</div>
+    <div>${acts.map((a,i)=>{
+      const c=cc(a.category),
+            sn=esc(a.note).replace(/'/g,"&#39;"),
+            sc=esc(a.category).replace(/'/g,"&#39;"),
+            ts=a.timestamp, et=a.end_time||'';
+      const estimated=!a.end_time;
+      const endISO=calcEndISO(a);
+      const endLabel=fmtT(endISO);
+      const isLast=noteLastIdx[a.note]===i;
+      const cumHtml=isLast
+        ?`<span style="font-size:.68rem;color:var(--gold);font-weight:700;white-space:nowrap;margin-left:auto">累计 ${fmtDurEn(noteCum[a.note])}</span>`
+        :`<span style="margin-left:auto"></span>`;
+      return`<div class="act-row" style="border-left-color:${c}"
+               onclick="openEdit(${a.id},'${sc}','${sn}','${ts}','${et}')">
+        <div class="act-row-main">
+          <span class="act-time">${fmtT(ts)}</span>
+          <span style="font-size:.72rem;color:var(--ink3);margin:0 3px">—</span>
+          <span class="act-time${estimated?' est-time':''}" title="${estimated?'按弹窗间隔推算':'实际结束时间'}">${endLabel}${estimated?'*':''}</span>
+          <span class="cat-pill" style="color:${c}">${esc(a.category)}</span>
+          <span class="act-note">${esc(a.note)}</span>${prioBadge(a.note)}
+          ${cumHtml}
+          <button class="edit-btn" onclick="openEdit(${a.id},'${sc}','${sn}','${ts}','${et}');event.stopPropagation()">✎</button>
+        </div>
+        <input class="act-detail-input" type="text"
+          placeholder="具体做了什么…"
+          value="${esc(a.detail||'').replace(/'/g,'&#39;')}"
+          data-id="${a.id}"
+          onclick="event.stopPropagation()"
+          onblur="saveDetail(this)"
+          onkeydown="if(event.key==='Enter'){this.blur();event.preventDefault();}"/>
+      </div>`;
+    }).join('')}</div>`;
+}
+
+/* ═══════════════════════════════
+   WEEK VIEW
+   ═══════════════════════════════ */
+async function renderWeek(){
+  const d=new Date(cur),dow=d.getDay();
+  d.setDate(d.getDate()-(dow===0?6:dow-1));
+  const monday=new Date(d),endDate=new Date(monday);
+  endDate.setDate(monday.getDate()+7);
+  const start=fd(monday),end=fd(endDate);
+  document.getElementById('period-label').textContent=
+    monday.toLocaleDateString('zh',{month:'long',day:'numeric'})+' — '+
+    new Date(endDate-86400000).toLocaleDateString('zh',{month:'long',day:'numeric'});
+
+  const [acts,stats]=await Promise.all([
+    api(`/api/activities?start=${start}&end=${end}`),
+    api(`/api/category_stats?start=${start}&end=${end}`),
+  ]);
+  renderSummary(stats);
+
+  // 填充缓存，供 openEdit / saveDetail 使用
+  if(!window._dayActMap) window._dayActMap={};
+  acts.forEach(a=>{ window._dayActMap[a.id]=a; });
+
+  const byDay={};
+  acts.forEach(a=>{const k=a.timestamp.slice(0,10);(byDay[k]=byDay[k]||[]).push(a);});
+  const tStr=fd(today());
+  const DN=['周一','周二','周三','周四','周五','周六','周日'];
+  let html='';
+
+  for(let i=0;i<7;i++){
+    const dd=new Date(monday);dd.setDate(monday.getDate()+i);
+    const key=fd(dd),rows=byDay[key]||[],isToday=key===tStr;
+    const totalMins=rows.reduce((s,a)=>s+actDur(a),0);
+    const cc_map={};rows.forEach(a=>{cc_map[a.category]=(cc_map[a.category]||0)+1;});
+    const bar=CATS.filter(c=>cc_map[c]).map(c=>{
+      const pct=Math.round(cc_map[c]/rows.length*100);
+      return`<div class="cat-bar-seg" style="background:${COLORS[c]||'#c8960a'};width:${pct}%;min-width:${pct?4:0}px"></div>`;
+    }).join('');
+
+    html+=`<div class="week-day${isToday?' today-card':''}">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span style="font-weight:700;font-size:.87rem;color:${isToday?'var(--crimson)':'var(--ink)'}">
+          ${DN[i]} · ${dd.toLocaleDateString('zh',{month:'short',day:'numeric'})}</span>
+        <span style="color:var(--ink3);font-size:.7rem">${rows.length}次 · ${fmtDur(totalMins)}</span>
+      </div>
+      ${rows.length?`<div class="cat-bar">${bar}</div>`:''}
+      ${rows.length?`<div style="margin-top:10px">${rows.map(a=>{
+        const c=cc(a.category),
+              sn=esc(a.note).replace(/'/g,"&#39;"),
+              sc=esc(a.category).replace(/'/g,"&#39;"),
+              ts=a.timestamp, et=a.end_time||'';
+        return`<div class="act-row" style="border-left-color:${c}"
+                 onclick="openEdit(${a.id},'${sc}','${sn}','${ts}','${et}')">
+          <span class="act-time">${fmtT(a.timestamp)}</span>
+          <span class="cat-pill" style="color:${c}">${esc(a.category)}</span>
+          <span class="act-note">${esc(a.note)}</span>${prioBadge(a.note)}
+          <span style="font-size:.7rem;color:var(--ink3);margin-left:auto;white-space:nowrap">${fmtDurEn(actDur(a))}</span>
+          <button class="edit-btn" onclick="openEdit(${a.id},'${sc}','${sn}','${ts}','${et}');event.stopPropagation()">✎</button>
+        </div>`;}).join('')}</div>`
+      :`<div style="color:var(--ink3);font-size:.78rem;margin-top:6px;letter-spacing:.06em">本日は記録なし</div>`}
+    </div>`;
+  }
+  document.getElementById('content').innerHTML=html;
+}
+
+/* ═══════════════════════════════
+   MONTH VIEW
+   ═══════════════════════════════ */
+async function renderMonth(){
+  const year=cur.getFullYear(),month=cur.getMonth();
+  const ms=`${year}-${p2(month+1)}`;
+  const start=`${ms}-01`,end=month===11?`${year+1}-01-01`:`${year}-${p2(month+2)}-01`;
+  document.getElementById('period-label').textContent=
+    cur.toLocaleDateString('zh',{year:'numeric',month:'long'});
+
+  const [cal,stats]=await Promise.all([
+    api(`/api/month_stats?month=${ms}`),
+    api(`/api/category_stats?start=${start}&end=${end}`),
+  ]);
+  renderSummary(stats);
+
+  const maxC=Math.max(1,...Object.values(cal));
+  const tStr=fd(today());
+  const first=new Date(year,month,1),last=new Date(year,month+1,0);
+  const off=first.getDay()===0?6:first.getDay()-1;
+
+  // Parchment → crimson heat scale
+  const hBg=['#e8d8b4','#f5d8c8','#e8b090','#d47050','#c8320a'];
+  const hFg=['#a07040','#6b3810','#4a1800','#fff','#fff'];
+
+  let calHtml=`<div class="cal-grid">
+    <div class="cal-header">
+      ${['一','二','三','四','五','六','日'].map(x=>`<div class="cal-dh">${x}</div>`).join('')}
+    </div>
+    <div class="cal-cells">`;
+
+  for(let i=0;i<off;i++)calHtml+='<div></div>';
+  for(let d=1;d<=last.getDate();d++){
+    const ds=`${year}-${p2(month+1)}-${p2(d)}`;
+    const cnt=cal[ds]||0,lvl=cnt===0?0:Math.max(1,Math.ceil(cnt/maxC*4));
+    calHtml+=`<div class="cal-cell${ds===tStr?' today-cell':''}"
+                   style="background:${hBg[lvl]}"
+                   onclick="drillDay('${ds}')" title="${ds}: ${cnt}条">
+      <span class="cal-num" style="color:${hFg[lvl]}">${d}</span>
+      ${cnt?`<span class="cal-cnt" style="color:${hFg[lvl]}">${cnt}</span>`:''}
+    </div>`;
+  }
+  calHtml+='</div></div>';
+
+  const total=Object.values(cal).reduce((a,b)=>a+b,0);
+  const active=Object.keys(cal).length;
+  const totalMins=Object.values(stats).reduce((s,v)=>s+(v.mins||0),0);
+  calHtml+=`<div class="stat-row">
+    ${[['総記録',total],['冒険日',active],['総時間',fmtDur(totalMins)]].map(([l,v])=>`
+      <div class="stat-card">
+        <div class="stat-val">${v}</div>
+        <div class="stat-lbl">${l}</div>
+      </div>`).join('')}
+  </div>`;
+
+  document.getElementById('content').innerHTML=calHtml;
+}
+
+function drillDay(ds){cur=new Date(ds+'T00:00:00');setView('day');}
+
+/* ═══════════════════════════════
+   EDIT MODAL
+   ═══════════════════════════════ */
+function openEdit(id,category,note,timestamp,endTime){
+  editId=id; editCat=category; editTimestamp=timestamp||'';
+  document.getElementById('edit-cats').innerHTML=CATS.map(cat=>{
+    const c=cc(cat),sel=cat===category;
+    return`<button class="m-cat${sel?' sel':''}" style="--sel-c:${c};--sel-bg:${lighten(c)}"
+              onclick="selCat('${esc(cat).replace(/'/g,"&#39;")}',this)">${esc(cat)}</button>`;
+  }).join('');
+  document.getElementById('edit-note').value=note;
+  _updateSuggestions('edit-suggestions', category);
+  // detail from cached day map
+  const _act=window._dayActMap&&window._dayActMap[id];
+  document.getElementById('edit-detail').value=_act?(_act.detail||''):'';
+
+  // start time display
+  document.getElementById('edit-start-time').textContent=timestamp?fmtT(timestamp):'—';
+
+  // populate end-time dropdowns
+  const eH=document.getElementById('edit-end-hour');
+  const eM=document.getElementById('edit-end-minute');
+  eH.innerHTML=`<option value="">—</option>`+Array.from({length:24},(_,i)=>`<option value="${i}">${p2(i)}</option>`).join('');
+  eM.innerHTML=[0,5,10,15,20,25,30,35,40,45,50,55].map(m=>`<option value="${m}">${p2(m)}</option>`).join('');
+
+  if(endTime){
+    const d=new Date(endTime);
+    eH.value=d.getHours();
+    eM.value=Math.round(d.getMinutes()/5)*5;
+  } else {
+    eH.value=''; // 未设置
+  }
+  calcDuration();
+
+  document.getElementById('edit-overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('edit-note').focus(),50);
+}
+
+function calcDuration(){
+  const eH=document.getElementById('edit-end-hour').value;
+  const eM=parseInt(document.getElementById('edit-end-minute').value)||0;
+  const el=document.getElementById('edit-duration');
+  if(eH===''||!editTimestamp){el.textContent='';return;}
+  const start=new Date(editTimestamp);
+  const end=new Date(start);
+  end.setHours(parseInt(eH),eM,0,0);
+  if(end<=start) end.setDate(end.getDate()+1);
+  const mins=Math.round((end-start)/60000);
+  el.textContent=`时长：${fmtDur(mins)}`;
+  el.style.color=mins>0?'var(--ink3)':'var(--crimson)';
+}
+
+function clearEndTime(){
+  document.getElementById('edit-end-hour').value='';
+  document.getElementById('edit-duration').textContent='';
+}
+
+function selCat(cat,btn){
+  editCat=cat;
+  document.querySelectorAll('#edit-cats .m-cat').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  _updateSuggestions('edit-suggestions', cat);
+}
+function maybeCloseEdit(e){if(e.target===document.getElementById('edit-overlay'))closeEdit();}
+function closeEdit(){document.getElementById('edit-overlay').classList.remove('open');}
+async function saveAct(){
+  const note=document.getElementById('edit-note').value.trim();
+  const eH=document.getElementById('edit-end-hour').value;
+  const eM=parseInt(document.getElementById('edit-end-minute').value)||0;
+  let end_time=null;
+  if(eH!==''&&editTimestamp){
+    const start=new Date(editTimestamp);
+    const end=new Date(start);
+    end.setHours(parseInt(eH),eM,0,0);
+    if(end<=start) end.setDate(end.getDate()+1);
+    end_time=toLocalISO(end);
+  }
+  const detail=document.getElementById('edit-detail').value.trim()||null;
+  await fetch(`/api/activities/${editId}`,{method:'PUT',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({category:editCat,note:note||editCat,end_time,detail})});
+  closeEdit();render();
+}
+async function deleteAct(){
+  await fetch(`/api/activities/${editId}`,{method:'DELETE'});
+  closeEdit();render();
+}
+
+async function saveDetail(input){
+  const id=parseInt(input.dataset.id);
+  const detail=input.value.trim()||null;
+  await fetch(`/api/activities/${id}/detail`,{method:'PATCH',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({detail})});
+  if(window._dayActMap&&window._dayActMap[id]) window._dayActMap[id].detail=detail;
+  input.classList.add('saved');
+  setTimeout(()=>input.classList.remove('saved'),1500);
+}
+
+/* ═══════════════════════════════
+   SETTINGS — INTERVAL
+   ═══════════════════════════════ */
+const STD_INTERVALS=[20,30,60];
+function renderIntervalBtns(){
+  const sel=document.getElementById('interval-select');
+  if(!sel)return;
+  const wrap=document.getElementById('interval-custom-wrap');
+  if(STD_INTERVALS.includes(IV)){
+    sel.value=String(IV);
+    wrap.style.display='none';
+  } else {
+    sel.value='custom';
+    wrap.style.display='flex';
+    document.getElementById('interval-custom-val').value=IV;
+  }
+  const st=document.getElementById('interval-status');
+  if(st) st.textContent=`当前：${IV} 分钟`;
+}
+function onIntervalSelectChange(){
+  const val=document.getElementById('interval-select').value;
+  const wrap=document.getElementById('interval-custom-wrap');
+  if(val==='custom'){
+    wrap.style.display='flex';
+    setTimeout(()=>document.getElementById('interval-custom-val').focus(),50);
+  } else {
+    wrap.style.display='none';
+    applyInterval(parseInt(val));
+  }
+}
+async function saveCustomInterval(){
+  const v=parseInt(document.getElementById('interval-custom-val').value);
+  if(isNaN(v)||v<5||v>120){await customAlert('请输入 5–120 之间的整数分钟数');return;}
+  await applyInterval(v);
+}
+async function applyInterval(mins){
+  const r=await api('/api/config/interval',{method:'POST',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({interval:mins})});
+  if(r.error){await customAlert(r.error);return;}
+  IV=mins;
+  const st=document.getElementById('interval-status');
+  if(st){st.textContent=`已设置：${IV} 分钟 ✓`;st.style.color='var(--gold)';}
+  setTimeout(()=>{if(st){st.textContent=`当前：${IV} 分钟`;st.style.color='var(--ink3)';}},1800);
+}
+
+/* ═══════════════════════════════
+   SETTINGS — SUB-TABS
+   ═══════════════════════════════ */
+function switchSTab(tab){
+  ['timer','cats','export'].forEach(t=>{
+    document.getElementById('stab-'+t).className='stab'+(t===tab?' on':'');
+    document.getElementById('stab-'+t+'-pane').style.display=t===tab?'':'none';
+  });
+  if(tab==='export') initExportDates();
+}
+
+async function renderSTab1(){
+  const ap=await api('/api/config/auto_popup');
+  AUTO_POPUP=ap.enabled!==false;
+  _applyPopupToggleUI();
+  renderIntervalBtns();
+}
+
+function _applyPopupToggleUI(){
+  const btn=document.getElementById('popup-toggle');
+  if(!btn)return;
+  if(AUTO_POPUP){
+    btn.textContent='开启';
+    btn.style.background='var(--crimson)';btn.style.borderColor='var(--crimson)';btn.style.color='#fff';
+  } else {
+    btn.textContent='关闭';
+    btn.style.background='transparent';btn.style.borderColor='var(--ink3)';btn.style.color='var(--ink3)';
+  }
+  const intSec=document.getElementById('interval-section');
+  if(intSec) intSec.style.opacity=AUTO_POPUP?'1':'0.4';
+}
+
+async function toggleAutoPopup(){
+  AUTO_POPUP=!AUTO_POPUP;
+  await api('/api/config/auto_popup',{method:'POST',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:AUTO_POPUP})});
+  _applyPopupToggleUI();
+}
+
+/* ═══════════════════════════════
+   SETTINGS — CATS + TOPICS (左右布局)
+   ═══════════════════════════════ */
+let _selectedCat=null;
+let _allCats=[], _allTopics=[];
+
+async function renderCatsTopics(){
+  [_allCats,_allTopics]=await Promise.all([api('/api/categories'),api('/api/focus_topics')]);
+  _renderCatList();
+  _renderTopicsPanel();
+}
+
+function _renderCatList(){
+  const el=document.getElementById('cat-list-panel');
+  if(!el)return;
+  // count topics per cat (include unassigned)
+  const cnt={};
+  _allTopics.forEach(t=>{ const k=t.category||''; cnt[k]=(cnt[k]||0)+1; });
+
+  let html=_allCats.map(cat=>{
+    const sn=esc(cat.name).replace(/'/g,"&#39;");
+    const sel=_selectedCat===cat.name;
+    const n=cnt[cat.name]||0;
+    return`<div class="cat-list-item${sel?' selected':''}" onclick="selectCat('${sn}')">
+      <div class="cat-dot" style="background:${cat.color}"></div>
+      <span class="cat-item-name" style="color:${cat.color}">${esc(cat.name)}</span>
+      <span class="cat-item-cnt">${n?n+'个':''}</span>
+      <div class="cat-actions">
+        <button class="cat-action-btn" title="改颜色" onclick="event.stopPropagation();openCpicker(this.closest('.cat-list-item').querySelector('.cat-dot'),'${sn}')">⬤</button>
+        <button class="cat-action-btn" title="删除" onclick="event.stopPropagation();deleteCat('${sn}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  // 未分类
+  const uncat=cnt['']||0;
+  if(uncat>0){
+    const sel=_selectedCat==='';
+    html+=`<div class="cat-list-item${sel?' selected':''}" onclick="selectCat('')"
+      style="opacity:.7">
+      <div class="cat-dot" style="background:var(--ink3)"></div>
+      <span class="cat-item-name" style="color:var(--ink3)">未分类</span>
+      <span class="cat-item-cnt">${uncat}个</span>
+    </div>`;
+  }
+  el.innerHTML=html;
+
+  // 同步颜色选择器 target（重新绑定 .cat-dot 元素）
+  _allCats.forEach(cat=>{
+    const dots=el.querySelectorAll(`.cat-dot`);
+    // handled via openCpicker call above
+  });
+}
+
+function selectCat(name){
+  _selectedCat=name;
+  _renderCatList();
+  _renderTopicsPanel();
+}
+
+function _renderTopicsPanel(){
+  const el=document.getElementById('topics-panel');
+  if(!el)return;
+  if(_selectedCat===null){
+    el.innerHTML='<div style="color:var(--ink3);font-size:.8rem;text-align:center;padding:24px 0">← 选择左侧分类查看关注主题</div>';
+    return;
+  }
+  const cat=_allCats.find(c=>c.name===_selectedCat);
+  const color=cat?cat.color:'var(--ink3)';
+  const catTopics=_allTopics.filter(t=>(t.category||'')===_selectedCat);
+  const otherCats=_allCats.filter(c=>c.name!==_selectedCat).map(c=>c.name);
+
+  const catLabel=_selectedCat===''?'未分类':esc(_selectedCat);
+  const sn=esc(_selectedCat).replace(/'/g,"&#39;");
+
+  // 分类标题行（可改名，非"未分类"）
+  let header='';
+  if(_selectedCat!==''){
+    header=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:8px;border-bottom:1.5px solid var(--border)">
+      <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0"></div>
+      <input class="scat-name" style="flex:1;font-size:.88rem;font-weight:700" value="${sn}" data-orig="${sn}"
+             onblur="renameCat(this)" onkeydown="if(event.key==='Enter')this.blur()"/>
+    </div>`;
+  } else {
+    header=`<div style="font-size:.82rem;font-weight:700;color:var(--ink3);margin-bottom:12px;padding-bottom:8px;border-bottom:1.5px solid var(--border)">未分类主题</div>`;
+  }
+
+  const rows=catTopics.map(t=>{
+    const tn=esc(t.name).replace(/'/g,"&#39;");
+    const opts=(_selectedCat===''?_allCats:otherCats).map(c=>`<option value="${esc(c.name||c).replace(/'/g,"&#39;")}">${esc(c.name||c)}</option>`).join('');
+    const prio=t.priority||'中';
+    const prioButtons=['高','中','低'].map(p=>`<button class="prio-btn${prio===p?' active-'+p:''}"
+      onclick="setPriority(${t.id},'${p}','${esc(_selectedCat).replace(/'/g,"&#39;")}')">${p}</button>`).join('');
+    return`<div class="topic-row" style="flex-wrap:wrap;gap:4px">
+      <input class="topic-name" value="${tn}" data-id="${t.id}" data-orig="${tn}"
+             onblur="renameTopic(this)" onkeydown="if(event.key==='Enter')this.blur()"/>
+      <div style="display:flex;gap:3px;flex-shrink:0">${prioButtons}</div>
+      <span style="font-size:.65rem;color:var(--ink3);white-space:nowrap">${t.cnt_7d}次/周</span>
+      <select class="topic-reassign" title="迁移到其他分类"
+              onchange="reassignTopic(${t.id},'${tn}','${sn}',this)">
+        <option value="">迁移到…</option>${opts}
+      </select>
+      <button class="topic-del" onclick="deleteTopic(${t.id},'${tn}')">✕</button>
+    </div>`;
+  }).join('');
+
+  const emptyHint=catTopics.length===0
+    ?`<div style="color:var(--ink3);font-size:.78rem;padding:8px 0 12px">此分类下暂无关注主题</div>`:'';
+
+  // 添加主题行
+  const addRow=_selectedCat!==''?`<div style="display:flex;gap:6px;margin-top:10px;align-items:center">
+    <input class="m-input topic-new-input" type="text" placeholder="新主题名称"
+           style="margin:0;flex:1;font-size:.8rem;padding:5px 8px"
+           data-cat="${sn}"
+           onkeydown="if(event.key==='Enter')addTopic(this)"/>
+    <button class="btn-add" style="padding:5px 12px;font-size:.78rem"
+            onclick="addTopic(this.previousElementSibling)">+ 添加</button>
+  </div>`:'';
+
+  el.innerHTML=header+rows+emptyHint+addRow;
+}
+
+async function renameCat(input){
+  const old=input.dataset.orig,nw=input.value.trim();
+  if(!nw){input.value=old;return;}if(nw===old)return;
+  const r=await api('/api/categories/update',{method:'POST',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({old_name:old,new_name:nw})});
+  if(r.error){await customAlert(r.error);input.value=old;return;}
+  if(_selectedCat===old) _selectedCat=nw;
+  input.dataset.orig=nw;
+  await reloadMeta();renderCatsTopics();
+}
+async function deleteCat(name){
+  if(!await customConfirm(`删除分类「${name}」？\n该分类下的关注主题也将被移除，历史活动记录保留原分类名。`,'删除'))return;
+  for(const t of _allTopics.filter(t=>t.category===name)){
+    await api(`/api/focus_topics/${t.id}`,{method:'DELETE'});
+  }
+  const r=await api('/api/categories/delete',{method:'POST',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
+  if(r.error){await customAlert(r.error);return;}
+  if(_selectedCat===name) _selectedCat=null;
+  await reloadMeta();renderCatsTopics();
+}
+async function addCat(){
+  const name=document.getElementById('add-input').value.trim();
+  if(!name)return;
+  const r=await api('/api/categories/add',{method:'POST',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({name,color:newCatColor})});
+  if(r.error){await customAlert(r.error);return;}
+  document.getElementById('add-input').value='';
+  newCatColor=PALETTE[0];
+  document.getElementById('add-dot').style.background='var(--ink3)';
+  _selectedCat=name;
+  await reloadMeta();renderCatsTopics();
+}
+async function reloadMeta(){await loadMeta();if(view!=='settings')render();}
+
+/* ═══════════════════════════════
+   EXPORT
+   ═══════════════════════════════ */
+function initExportDates(){
+  const today=fd(new Date());
+  const weekAgo=fd(new Date(Date.now()-6*86400000));
+  const es=document.getElementById('export-start');
+  const ee=document.getElementById('export-end');
+  if(es&&!es.value) es.value=weekAgo;
+  if(ee&&!ee.value) ee.value=today;
+}
+function setExportRange(days){
+  document.getElementById('export-start').value=fd(new Date(Date.now()-(days-1)*86400000));
+  document.getElementById('export-end').value=fd(new Date());
+}
+function setExportThisMonth(){
+  const n=new Date();
+  document.getElementById('export-start').value=`${n.getFullYear()}-${p2(n.getMonth()+1)}-01`;
+  document.getElementById('export-end').value=fd(n);
+}
+async function generateExport(){
+  const start=document.getElementById('export-start').value;
+  const end=document.getElementById('export-end').value;
+  if(!start||!end){await customAlert('请选择开始和结束日期');return;}
+  if(start>end){await customAlert('开始日期不能晚于结束日期');return;}
+  const btn=document.querySelector('#stab-export-pane .btn-save');
+  if(btn){btn.textContent='生成中…';btn.disabled=true;}
+  try{
+    const resp=await fetch(`/api/export?start=${start}&end=${end}`);
+    const text=await resp.text();
+    document.getElementById('export-text').value=text;
+    const lines=text.split('\n').length;
+    const words=text.length;
+    document.getElementById('export-info').textContent=`${lines} 行 · ${words} 字符`;
+    document.getElementById('export-result').style.display='block';
+  }finally{
+    if(btn){btn.textContent='生成';btn.disabled=false;}
+  }
+}
+async function copyExport(){
+  const text=document.getElementById('export-text').value;
+  if(!text)return;
+  try{
+    await navigator.clipboard.writeText(text);
+    const btn=event.target;
+    btn.textContent='✓ 已复制';
+    setTimeout(()=>{btn.textContent='📋 复制全文';},1800);
+  }catch{
+    document.getElementById('export-text').select();
+    document.execCommand('copy');
+  }
+}
+
+async function addTopic(inputEl){
+  const name=inputEl.value.trim();
+  const cat=inputEl.dataset.cat||'';
+  if(!name)return;
+  const r=await api('/api/focus_topics',{method:'POST',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({name,category:cat})});
+  if(r.error){await customAlert(r.error);return;}
+  inputEl.value='';
+  await renderCatsTopics();
+  renderFocusTopics();
+}
+
+async function renameTopic(input){
+  const old=input.dataset.orig,nw=input.value.trim(),id=input.dataset.id;
+  if(!nw){input.value=old;return;}if(nw===old)return;
+  const r=await api(`/api/focus_topics/${id}`,{method:'PUT',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({name:nw})});
+  if(r.error){await customAlert(r.error);input.value=old;return;}
+  input.dataset.orig=nw;
+  renderFocusTopics();
+}
+
+async function deleteTopic(id,name){
+  if(!await customConfirm(`删除主题「${name}」？\n历史统计数据不受影响。`,'删除'))return;
+  await api(`/api/focus_topics/${id}`,{method:'DELETE'});
+  await renderCatsTopics(); renderFocusTopics();
+}
+
+async function setPriority(id, priority, catName){
+  const r=await api(`/api/focus_topics/${id}`,{method:'PUT',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({priority})});
+  if(r.error){await customAlert(r.error);return;}
+  if(r.downgraded&&r.downgraded.length>0){
+    await customAlert(`「${r.downgraded.join('、')}」已从高优先改为中优先。\n每个分类只能有一个高优先主题。`);
+  }
+  await reloadMeta(); renderCatsTopics(); renderFocusTopics();
+}
+
+async function reassignTopic(id,name,currentCat,selectEl){
+  const newCat=selectEl.value;
+  if(!newCat){return;}
+  if(!await customConfirm(`将「${name}」迁移到「${newCat}」？\n历史记录中所有该主题的活动将同步更新分类，此操作不可撤销。`,'迁移')){
+    selectEl.value='';return;
+  }
+  const r=await api(`/api/focus_topics/${id}`,{method:'PUT',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({category:newCat})});
+  if(r.error){await customAlert(r.error);selectEl.value='';return;}
+  if(r.migrated>0) await customAlert(`已迁移 ${r.migrated} 条历史记录到「${newCat}」。`);
+  _selectedCat=newCat;
+  await renderCatsTopics(); renderFocusTopics();
+}
+
+/* ═══════════════════════════════
+   COLOR PICKER
+   ═══════════════════════════════ */
+function openCpicker(dotEl,catName){
+  cpTarget=dotEl;cpOldName=catName;
+  const p=document.getElementById('cpicker');
+  p.innerHTML=PALETTE.map(c=>`<div class="cp-sw" style="background:${c}" onclick="pickColor('${c}')"></div>`).join('');
+  const rect=dotEl.getBoundingClientRect();
+  p.style.left=rect.left+'px';p.style.top=(rect.bottom+6)+'px';
+  p.classList.add('open');
+  setTimeout(()=>document.addEventListener('click',cpOut,{once:true}),10);
+}
+function cpOut(e){if(!document.getElementById('cpicker').contains(e.target))closeCpicker();}
+function closeCpicker(){document.getElementById('cpicker').classList.remove('open');cpTarget=null;cpOldName=null;}
+async function pickColor(color){
+  if(!cpTarget)return;
+  cpTarget.style.background=color;
+  if(cpOldName==='__new__'){
+    newCatColor=color;
+    document.getElementById('add-dot').style.background=color;
+  } else {
+    await api('/api/categories/update',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({old_name:cpOldName,color})});
+    await reloadMeta();
+  }
+  closeCpicker();
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){closeEdit();closeManualAdd();}
+});
+
+
+/* ═══════════════════════════════
+   MANUAL ADD
+   ═══════════════════════════════ */
+let maCat = null;
+
+function _fillTimeSels(hId, mId, defH, defM, allowEmpty){
+  const hEl=document.getElementById(hId);
+  const mEl=document.getElementById(mId);
+  hEl.innerHTML=(allowEmpty?`<option value="">—</option>`:'')+
+    Array.from({length:24},(_,i)=>`<option value="${i}">${p2(i)}</option>`).join('');
+  mEl.innerHTML=[0,5,10,15,20,25,30,35,40,45,50,55]
+    .map(m=>`<option value="${m}">${p2(m)}</option>`).join('');
+  if(defH!==null) hEl.value=defH; else hEl.value='';
+  if(defM!==null) mEl.value=Math.round(defM/5)*5;
+}
+
+function calcMaDur(){
+  const sh=document.getElementById('ma-sh').value;
+  const sm=parseInt(document.getElementById('ma-sm').value)||0;
+  const eh=document.getElementById('ma-eh').value;
+  const em=parseInt(document.getElementById('ma-em').value)||0;
+  const el=document.getElementById('ma-duration');
+  if(!sh||eh===''){el.textContent='';return;}
+  const date=document.getElementById('ma-date').value||fd(new Date());
+  const start=new Date(`${date}T${p2(parseInt(sh))}:${p2(sm)}:00`);
+  const end=new Date(`${date}T${p2(parseInt(eh))}:${p2(em)}:00`);
+  if(end<=start) end.setDate(end.getDate()+1);
+  const mins=Math.round((end-start)/60000);
+  el.textContent=`时长：${fmtDur(mins)}`;
+  el.style.color=mins>0?'var(--ink3)':'var(--crimson)';
+}
+
+function openManualAdd(){
+  const now=new Date();
+  document.getElementById('ma-date').value=fd(new Date(cur));
+
+  // start time defaults to now (rounded to nearest 5 min)
+  const roundM=Math.round(now.getMinutes()/5)*5%60;
+  const roundH=now.getHours()+(Math.round(now.getMinutes()/5)*5>=60?1:0);
+  _fillTimeSels('ma-sh','ma-sm',roundH%24,roundM,false);
+  // end time: empty by default
+  _fillTimeSels('ma-eh','ma-em',null,null,true);
+  document.getElementById('ma-duration').textContent='';
+
+  // Category buttons
+  maCat=CATS[0]||null;
+  document.getElementById('ma-cats').innerHTML=CATS.map(cat=>{
+    const c=cc(cat),sel=cat===maCat;
+    return`<button class="m-cat${sel?' sel':''}" style="--sel-c:${c};--sel-bg:${lighten(c)}"
+              onclick="selectMaCat('${esc(cat).replace(/'/g,"&#39;")}',this)">${esc(cat)}</button>`;
+  }).join('');
+
+  document.getElementById('ma-note').value='';
+  _updateMaSuggestions(maCat);
+  document.getElementById('manual-overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('ma-note').focus(),80);
+}
+
+async function _updateSuggestions(dlId, cat){
+  const dl=document.getElementById(dlId);
+  if(!dl) return;
+  try{
+    const topics=await api('/api/focus_topics');
+    const PRIO={'高':0,'中':1,'低':2};
+    const filtered=topics
+      .filter(t=>t.category===cat)
+      .sort((a,b)=>(PRIO[a.priority]??1)-(PRIO[b.priority]??1)||b.total_cnt-a.total_cnt);
+    dl.innerHTML=filtered.map(t=>`<option value="${esc(t.name)}">`).join('');
+  }catch(e){ dl.innerHTML=''; }
+}
+function _updateMaSuggestions(cat){ _updateSuggestions('ma-suggestions', cat); }
+
+function selectMaCat(cat,btn){
+  maCat=cat;
+  document.querySelectorAll('#ma-cats .m-cat').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  document.getElementById('ma-note').value='';
+  _updateMaSuggestions(cat);
+}
+
+function maybeCloseManual(e){
+  if(e.target===document.getElementById('manual-overlay'))closeManualAdd();
+}
+function closeManualAdd(){
+  document.getElementById('manual-overlay').classList.remove('open');
+}
+
+async function submitManualAdd(){
+  const date=document.getElementById('ma-date').value;
+  const sh=document.getElementById('ma-sh').value;
+  const sm=parseInt(document.getElementById('ma-sm').value)||0;
+  const eh=document.getElementById('ma-eh').value;
+  const em=parseInt(document.getElementById('ma-em').value)||0;
+  const note=document.getElementById('ma-note').value.trim();
+  if(!date||sh===''||!maCat){await customAlert('请填写日期、开始时间和分类');return;}
+
+  const time=`${p2(parseInt(sh))}:${p2(sm)}`;
+  let end_time=null;
+  if(eh!==''){
+    const start=new Date(`${date}T${time}:00`);
+    const end=new Date(`${date}T${p2(parseInt(eh))}:${p2(em)}:00`);
+    if(end<=start) end.setDate(end.getDate()+1);
+    end_time=toLocalISO(end);
+  }
+
+  const r=await api('/api/activities/add_manual',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({date,time,end_time,category:maCat,note:note||maCat}),
+  });
+  if(r.error){await customAlert('保存失败：'+r.error);return;}
+  closeManualAdd();
+  cur=new Date(date+'T00:00:00');
+  setView('day');
+}
+
+/* ═══════════════════════════════
+   RENDER
+   ═══════════════════════════════ */
+async function render(){
+  document.getElementById('content').innerHTML='<div class="loading">✦ 詠唱中 · Loading ✦</div>';
+  document.getElementById('cat-summary').innerHTML='';
+  try{
+    if(view==='day')        await renderDay();
+    else if(view==='week')  await renderWeek();
+    else if(view==='topic') await renderTopic();
+    else                    await renderMonth();
+  }catch(e){
+    document.getElementById('content').innerHTML=
+      `<div class="empty-state">Dragon Slave!! 読み込み失敗<br><span style="font-size:.72rem">${e.message}</span></div>`;
+  }
+}
+
+(async()=>{
+  await loadMeta();
+  setView('day');
+})();
+</script>
+</body>
+</html>
