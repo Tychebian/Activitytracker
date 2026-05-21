@@ -754,6 +754,24 @@ body::before {
 <!-- color picker -->
 <div id="cpicker"></div>
 
+<!-- ═══════════════════════
+     CUSTOM CONFIRM MODAL
+     ═══════════════════════ -->
+<div id="confirm-overlay"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);
+            z-index:400;align-items:center;justify-content:center">
+  <div style="background:var(--parch);border-radius:10px;padding:24px 28px;
+              max-width:360px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.25)">
+    <div id="confirm-msg"
+         style="font-size:.88rem;color:var(--ink);line-height:1.6;margin-bottom:20px;
+                white-space:pre-wrap"></div>
+    <div style="display:flex;justify-content:flex-end;gap:10px">
+      <button class="btn-cancel" onclick="_confirmResolve(false)">取消</button>
+      <button id="confirm-ok-btn" class="btn-del" onclick="_confirmResolve(true)">确认</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ═══════════════════════════════
    STATE
@@ -805,6 +823,29 @@ async function loadMeta(){
   TOPIC_PRIORITIES=d.topic_priorities||{};
   const vb=document.getElementById('version-badge');
   if(vb&&d.version) vb.textContent=`v${d.version}`;
+}
+
+/* WKWebView 不支持原生 confirm/alert，用自定义弹窗替代 */
+let _confirmResolve=null;
+function customConfirm(msg, okLabel='确认'){
+  return new Promise(resolve=>{
+    document.getElementById('confirm-msg').textContent=msg;
+    document.getElementById('confirm-ok-btn').textContent=okLabel;
+    const el=document.getElementById('confirm-overlay');
+    el.style.display='flex';
+    _confirmResolve=v=>{ el.style.display='none'; _confirmResolve=null; resolve(v); };
+  });
+}
+function customAlert(msg){
+  return new Promise(resolve=>{
+    document.getElementById('confirm-msg').textContent=msg;
+    document.getElementById('confirm-ok-btn').textContent='好的';
+    const cancelBtn=document.querySelector('#confirm-overlay .btn-cancel');
+    cancelBtn.style.display='none';
+    const el=document.getElementById('confirm-overlay');
+    el.style.display='flex';
+    _confirmResolve=()=>{ el.style.display='none'; cancelBtn.style.display=''; _confirmResolve=null; resolve(); };
+  });
 }
 
 function prioBadge(note){
@@ -1237,13 +1278,13 @@ function onIntervalSelectChange(){
 }
 async function saveCustomInterval(){
   const v=parseInt(document.getElementById('interval-custom-val').value);
-  if(isNaN(v)||v<5||v>120){alert('请输入 5–120 之间的整数分钟数');return;}
+  if(isNaN(v)||v<5||v>120){await customAlert('请输入 5–120 之间的整数分钟数');return;}
   await applyInterval(v);
 }
 async function applyInterval(mins){
   const r=await api('/api/config/interval',{method:'POST',
     headers:{'Content-Type':'application/json'},body:JSON.stringify({interval:mins})});
-  if(r.error){alert(r.error);return;}
+  if(r.error){await customAlert(r.error);return;}
   IV=mins;
   const st=document.getElementById('interval-status');
   if(st){st.textContent=`已设置：${IV} 分钟 ✓`;st.style.color='var(--gold)';}
@@ -1416,19 +1457,19 @@ async function renameCat(input){
   if(!nw){input.value=old;return;}if(nw===old)return;
   const r=await api('/api/categories/update',{method:'POST',
     headers:{'Content-Type':'application/json'},body:JSON.stringify({old_name:old,new_name:nw})});
-  if(r.error){alert(r.error);input.value=old;return;}
+  if(r.error){await customAlert(r.error);input.value=old;return;}
   if(_selectedCat===old) _selectedCat=nw;
   input.dataset.orig=nw;
   await reloadMeta();renderCatsTopics();
 }
 async function deleteCat(name){
-  if(!confirm(`删除分类「${name}」？该分类下的关注主题也将被移除，历史活动记录保留原分类名。`))return;
+  if(!await customConfirm(`删除分类「${name}」？\n该分类下的关注主题也将被移除，历史活动记录保留原分类名。`,'删除'))return;
   for(const t of _allTopics.filter(t=>t.category===name)){
     await api(`/api/focus_topics/${t.id}`,{method:'DELETE'});
   }
   const r=await api('/api/categories/delete',{method:'POST',
     headers:{'Content-Type':'application/json'},body:JSON.stringify({name})});
-  if(r.error){alert(r.error);return;}
+  if(r.error){await customAlert(r.error);return;}
   if(_selectedCat===name) _selectedCat=null;
   await reloadMeta();renderCatsTopics();
 }
@@ -1437,7 +1478,7 @@ async function addCat(){
   if(!name)return;
   const r=await api('/api/categories/add',{method:'POST',
     headers:{'Content-Type':'application/json'},body:JSON.stringify({name,color:newCatColor})});
-  if(r.error){alert(r.error);return;}
+  if(r.error){await customAlert(r.error);return;}
   document.getElementById('add-input').value='';
   newCatColor=PALETTE[0];
   document.getElementById('add-dot').style.background='var(--ink3)';
@@ -1469,8 +1510,8 @@ function setExportThisMonth(){
 async function generateExport(){
   const start=document.getElementById('export-start').value;
   const end=document.getElementById('export-end').value;
-  if(!start||!end){alert('请选择开始和结束日期');return;}
-  if(start>end){alert('开始日期不能晚于结束日期');return;}
+  if(!start||!end){await customAlert('请选择开始和结束日期');return;}
+  if(start>end){await customAlert('开始日期不能晚于结束日期');return;}
   const btn=document.querySelector('#stab-export-pane .btn-save');
   if(btn){btn.textContent='生成中…';btn.disabled=true;}
   try{
@@ -1505,7 +1546,7 @@ async function addTopic(inputEl){
   if(!name)return;
   const r=await api('/api/focus_topics',{method:'POST',
     headers:{'Content-Type':'application/json'},body:JSON.stringify({name,category:cat})});
-  if(r.error){alert(r.error);return;}
+  if(r.error){await customAlert(r.error);return;}
   inputEl.value='';
   await renderCatsTopics();
   renderFocusTopics();
@@ -1516,13 +1557,13 @@ async function renameTopic(input){
   if(!nw){input.value=old;return;}if(nw===old)return;
   const r=await api(`/api/focus_topics/${id}`,{method:'PUT',
     headers:{'Content-Type':'application/json'},body:JSON.stringify({name:nw})});
-  if(r.error){alert(r.error);input.value=old;return;}
+  if(r.error){await customAlert(r.error);input.value=old;return;}
   input.dataset.orig=nw;
   renderFocusTopics();
 }
 
 async function deleteTopic(id,name){
-  if(!confirm(`删除主题「${name}」？历史统计数据不受影响。`))return;
+  if(!await customConfirm(`删除主题「${name}」？\n历史统计数据不受影响。`,'删除'))return;
   await api(`/api/focus_topics/${id}`,{method:'DELETE'});
   await renderCatsTopics(); renderFocusTopics();
 }
@@ -1530,9 +1571,9 @@ async function deleteTopic(id,name){
 async function setPriority(id, priority, catName){
   const r=await api(`/api/focus_topics/${id}`,{method:'PUT',
     headers:{'Content-Type':'application/json'},body:JSON.stringify({priority})});
-  if(r.error){alert(r.error);return;}
+  if(r.error){await customAlert(r.error);return;}
   if(r.downgraded&&r.downgraded.length>0){
-    alert(`「${r.downgraded.join('、')}」已从高优先改为中优先。\n每个分类只能有一个高优先主题。`);
+    await customAlert(`「${r.downgraded.join('、')}」已从高优先改为中优先。\n每个分类只能有一个高优先主题。`);
   }
   await reloadMeta(); renderCatsTopics(); renderFocusTopics();
 }
@@ -1540,13 +1581,13 @@ async function setPriority(id, priority, catName){
 async function reassignTopic(id,name,currentCat,selectEl){
   const newCat=selectEl.value;
   if(!newCat){return;}
-  if(!confirm(`将「${name}」迁移到「${newCat}」？\n历史记录中所有该主题的活动将同步更新分类，此操作不可撤销。`)){
+  if(!await customConfirm(`将「${name}」迁移到「${newCat}」？\n历史记录中所有该主题的活动将同步更新分类，此操作不可撤销。`,'迁移')){
     selectEl.value='';return;
   }
   const r=await api(`/api/focus_topics/${id}`,{method:'PUT',
     headers:{'Content-Type':'application/json'},body:JSON.stringify({category:newCat})});
-  if(r.error){alert(r.error);selectEl.value='';return;}
-  if(r.migrated>0) alert(`已迁移 ${r.migrated} 条历史记录到「${newCat}」。`);
+  if(r.error){await customAlert(r.error);selectEl.value='';return;}
+  if(r.migrated>0) await customAlert(`已迁移 ${r.migrated} 条历史记录到「${newCat}」。`);
   _selectedCat=newCat;
   await renderCatsTopics(); renderFocusTopics();
 }
@@ -1679,7 +1720,7 @@ async function submitManualAdd(){
   const eh=document.getElementById('ma-eh').value;
   const em=parseInt(document.getElementById('ma-em').value)||0;
   const note=document.getElementById('ma-note').value.trim();
-  if(!date||sh===''||!maCat){alert('请填写日期、开始时间和分类');return;}
+  if(!date||sh===''||!maCat){await customAlert('请填写日期、开始时间和分类');return;}
 
   const time=`${p2(parseInt(sh))}:${p2(sm)}`;
   let end_time=null;
@@ -1695,7 +1736,7 @@ async function submitManualAdd(){
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({date,time,end_time,category:maCat,note:note||maCat}),
   });
-  if(r.error){alert('保存失败：'+r.error);return;}
+  if(r.error){await customAlert('保存失败：'+r.error);return;}
   closeManualAdd();
   cur=new Date(date+'T00:00:00');
   setView('day');
