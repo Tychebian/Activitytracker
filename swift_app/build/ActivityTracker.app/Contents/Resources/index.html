@@ -210,14 +210,18 @@ body::before {
   cursor: pointer; box-shadow: var(--shadow); transition: background .1s;
 }
 .act-row:hover { background: var(--parch3); }
-.act-row-main { display: flex; align-items: center; gap: 10px; }
-.act-time { font-family: monospace; font-size: .76rem; color: var(--ink3); min-width: 38px; }
+.act-row-main { display: flex; align-items: center; gap: 8px; }
+.act-time { font-family: monospace; font-size: .76rem; color: var(--ink3);
+            width: 40px; flex-shrink: 0; white-space: nowrap; }
 .cat-pill {
   font-size: .66rem; font-weight: 700; padding: 2px 7px;
   border-radius: 3px; background: var(--parch3);
-  white-space: nowrap; letter-spacing: .04em;
+  white-space: nowrap; letter-spacing: .04em; flex-shrink: 0;
 }
-.act-note { flex: 1; font-size: .85rem; color: var(--ink2); }
+/* act-note wraps the note text + prio badge together as one flex item */
+.act-note { flex: 1; font-size: .85rem; color: var(--ink2); min-width: 0;
+            display: flex; align-items: center; gap: 4px; overflow: hidden; }
+.act-note-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .edit-btn {
   opacity: 0; font-size: .75rem; color: var(--ink3);
   background: none; border: none; cursor: pointer;
@@ -929,13 +933,12 @@ async function renderTopic(){
       <div class="section-title" style="margin-bottom:10px;color:${catColor}">${esc(catName)}</div>
       ${topics.map((t,i)=>{
         const pct=Math.round(t.total_mins/maxMins*100);
-        const badge=t.cnt_7d>0?`<span class="topic-badge">${t.cnt_7d}</span>`:'';
         const rank=i+1;
         const pb=prioBadge(t.name);
         return`<div class="tnote-row">
           <span style="font-size:.7rem;color:var(--ink3);width:16px;text-align:right;flex-shrink:0">${rank}</span>
           <div class="tnote-dot" style="background:${catColor}"></div>
-          <div class="tnote-note">${esc(t.name)}${pb}${badge}</div>
+          <div class="tnote-note">${esc(t.name)}${pb}</div>
           <div class="tnote-bar-wrap"><div class="tnote-bar" style="background:${catColor};width:${pct}%"></div></div>
           <div class="tnote-cnt" style="color:var(--ink2)">${t.total_cnt}次</div>
           <div class="tnote-dur">${fmtDur(t.total_mins)}</div>
@@ -1008,10 +1011,10 @@ async function renderDay(){
                onclick="openEdit(${a.id},'${sc}','${sn}','${ts}','${et}')">
         <div class="act-row-main">
           <span class="act-time">${fmtT(ts)}</span>
-          <span style="font-size:.72rem;color:var(--ink3);margin:0 3px">—</span>
+          <span style="font-size:.72rem;color:var(--ink3);flex-shrink:0">—</span>
           <span class="act-time${estimated?' est-time':''}" title="${estimated?'按弹窗间隔推算':'实际结束时间'}">${endLabel}${estimated?'*':''}</span>
           <span class="cat-pill" style="color:${c}">${esc(a.category)}</span>
-          <span class="act-note">${esc(a.note)}</span>${prioBadge(a.note)}
+          <span class="act-note"><span class="act-note-text">${esc(a.note)}</span>${prioBadge(a.note)}</span>
           ${cumHtml}
           <button class="edit-btn" onclick="openEdit(${a.id},'${sc}','${sn}','${ts}','${et}');event.stopPropagation()">✎</button>
         </div>
