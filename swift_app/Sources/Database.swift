@@ -132,16 +132,25 @@ final class Database {
 
     // MARK: - Activity operations
 
-    private static let isoFmt: ISO8601DateFormatter = {
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime, .withDashSeparatorInDate,
-                           .withColonSeparatorInTime, .withTimeZone]
+    // Match Python's datetime.isoformat(timespec="seconds") — no timezone suffix
+    private static let isoFmt: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone.current
         return f
     }()
 
     static func isoNow() -> String { isoFmt.string(from: Date()) }
     static func isoDate(_ d: Date) -> String { isoFmt.string(from: d) }
-    static func date(from s: String) -> Date? { isoFmt.date(from: s) }
+    static func date(from s: String) -> Date? {
+        // Try the primary format first
+        if let d = isoFmt.date(from: s) { return d }
+        // Fallback: ISO8601 with Z suffix (legacy records)
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime, .withDashSeparatorInDate, .withColonSeparatorInTime]
+        return iso.date(from: s)
+    }
 
     func slotBounds(slotStart: Date) -> (String, String) {
         (Self.isoDate(slotStart), Self.isoDate(slotStart.addingTimeInterval(15 * 60)))

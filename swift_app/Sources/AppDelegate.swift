@@ -1,5 +1,6 @@
 import AppKit
 import WebKit
+import UserNotifications
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
@@ -11,10 +12,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Launch
 
     func applicationDidFinishLaunching(_ n: Notification) {
+        NSApp.setActivationPolicy(.accessory)
         Database.shared.initializeSchema()
         LaunchAgent.ensureRegistered()
         setupStatusItem()
         setupTimer()
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ app: NSApplication) -> Bool { false }
@@ -90,11 +93,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         // Notification
-        let n = NSUserNotification()
-        n.title   = "✓ \(result.category)"
-        n.informativeText = result.note
-        n.soundName = nil
-        NSUserNotificationCenter.default.deliver(n)
+        let content = UNMutableNotificationContent()
+        content.title = "✓ \(result.category)"
+        content.body  = result.note
+        let req = UNNotificationRequest(identifier: UUID().uuidString,
+                                        content: content, trigger: nil)
+        UNUserNotificationCenter.current().add(req, withCompletionHandler: nil)
     }
 
     // MARK: - Dashboard window

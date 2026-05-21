@@ -285,8 +285,10 @@ enum APIHandlers {
         for a in acts {
             guard let cat = a["category"] as? String, let note = a["note"] as? String else { continue }
             let m = durMins(a)
-            catStats[cat, default: (0,0)] = (catStats[cat]?.cnt ?? 0 + 1, catStats[cat]?.mins ?? 0 + m)
-            noteStats[note, default: (0,0)] = (noteStats[note]?.cnt ?? 0 + 1, noteStats[note]?.mins ?? 0 + m)
+            let cs = catStats[cat] ?? (0, 0)
+            catStats[cat] = (cs.cnt + 1, cs.mins + m)
+            let ns = noteStats[note] ?? (0, 0)
+            noteStats[note] = (ns.cnt + 1, ns.mins + m)
         }
         let totalCnt  = acts.count
         let totalMins = acts.reduce(0) { $0 + durMins($1) }
@@ -368,9 +370,7 @@ enum APIHandlers {
     }
 
     // MARK: - Helpers
-
-    private static func nullToNil(_ row: [String: Any]) -> [String: Any] {
-        row.mapValues { $0 is NSNull ? Optional<Any>.none as Any : $0 }
-    }
+    // NSNull is kept as-is: JSONSerialization serializes it to JSON null correctly
+    private static func nullToNil(_ row: [String: Any]) -> [String: Any] { row }
 }
 
