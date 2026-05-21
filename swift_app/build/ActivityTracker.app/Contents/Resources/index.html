@@ -798,7 +798,11 @@ function fmtT(iso){return new Date(iso).toLocaleTimeString('zh',{hour:'2-digit',
 function esc(s){const d=document.createElement('div');d.appendChild(document.createTextNode(s));return d.innerHTML;}
 async function api(url,opts){
   const r=await fetch(url,opts);
-  if(!r.ok) throw new Error(`HTTP ${r.status}`);
+  if(!r.ok){
+    let msg=`HTTP ${r.status}`;
+    try{ const b=await r.clone().json(); if(b.error) msg=b.error; }catch(_){}
+    throw new Error(msg);
+  }
   return r.json();
 }
 function cc(cat){return COLORS[cat]||'#c8960a';}
@@ -1345,31 +1349,27 @@ async function renderCatsTopics(){
 function _renderCatList(){
   const el=document.getElementById('cat-list-panel');
   if(!el)return;
-  // count topics per cat (include unassigned)
   const cnt={};
   _allTopics.forEach(t=>{ const k=t.category||''; cnt[k]=(cnt[k]||0)+1; });
 
   let html=_allCats.map(cat=>{
-    const sn=esc(cat.name).replace(/'/g,"&#39;");
     const sel=_selectedCat===cat.name;
     const n=cnt[cat.name]||0;
-    return`<div class="cat-list-item${sel?' selected':''}" onclick="selectCat('${sn}')">
+    return`<div class="cat-list-item${sel?' selected':''}" data-cat="${esc(cat.name)}">
       <div class="cat-dot" style="background:${cat.color}"></div>
       <span class="cat-item-name" style="color:${cat.color}">${esc(cat.name)}</span>
       <span class="cat-item-cnt">${n?n+'个':''}</span>
       <div class="cat-actions">
-        <button class="cat-action-btn" title="改颜色" onclick="event.stopPropagation();openCpicker(this.closest('.cat-list-item').querySelector('.cat-dot'),'${sn}')">⬤</button>
-        <button class="cat-action-btn" title="删除" onclick="event.stopPropagation();deleteCat('${sn}')">✕</button>
+        <button class="cat-action-btn cat-color-btn" title="改颜色">⬤</button>
+        <button class="cat-action-btn cat-del-btn" title="删除">✕</button>
       </div>
     </div>`;
   }).join('');
 
-  // 未分类
   const uncat=cnt['']||0;
   if(uncat>0){
     const sel=_selectedCat==='';
-    html+=`<div class="cat-list-item${sel?' selected':''}" onclick="selectCat('')"
-      style="opacity:.7">
+    html+=`<div class="cat-list-item${sel?' selected':''}" data-cat="" style="opacity:.7">
       <div class="cat-dot" style="background:var(--ink3)"></div>
       <span class="cat-item-name" style="color:var(--ink3)">未分类</span>
       <span class="cat-item-cnt">${uncat}个</span>
@@ -1377,10 +1377,22 @@ function _renderCatList(){
   }
   el.innerHTML=html;
 
-  // 同步颜色选择器 target（重新绑定 .cat-dot 元素）
-  _allCats.forEach(cat=>{
-    const dots=el.querySelectorAll(`.cat-dot`);
-    // handled via openCpicker call above
+  // addEventListener — 比 onclick 属性更可靠
+  el.querySelectorAll('.cat-list-item').forEach(function(item){
+    var catName=item.dataset.cat;
+    item.addEventListener('click', function(e){
+      if(!e.target.closest('.cat-actions')) selectCat(catName);
+    });
+    var colorBtn=item.querySelector('.cat-color-btn');
+    if(colorBtn) colorBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      openCpicker(item.querySelector('.cat-dot'), catName);
+    });
+    var delBtn=item.querySelector('.cat-del-btn');
+    if(delBtn) delBtn.addEventListener('click', function(e){
+      e.stopPropagation();
+      deleteCat(catName);
+    });
   });
 }
 
@@ -1420,21 +1432,18 @@ function _renderTopicsPanel(){
   }
 
   const rows=catTopics.map(t=>{
-    const tn=esc(t.name).replace(/'/g,"&#39;");
-    const opts=(_selectedCat===''?_allCats:otherCats).map(c=>`<option value="${esc(c.name||c).replace(/'/g,"&#39;")}">${esc(c.name||c)}</option>`).join('');
+    const tn=esc(t.name);
+    const opts=(_selectedCat===''?_allCats:otherCats).map(c=>`<option value="${esc(c.name||c)}">${esc(c.name||c)}</option>`).join('');
     const prio=t.priority||'中';
-    const prioButtons=['高','中','低'].map(p=>`<button class="prio-btn${prio===p?' active-'+p:''}"
-      onclick="setPriority(${t.id},'${p}','${esc(_selectedCat).replace(/'/g,"&#39;")}')">${p}</button>`).join('');
+    const prioButtons=['高','中','低'].map(p=>`<button class="prio-btn${prio===p?' active-'+p:''}" data-tid="${t.id}" data-prio="${p}">${p}</button>`).join('');
     return`<div class="topic-row" style="flex-wrap:wrap;gap:4px">
-      <input class="topic-name" value="${tn}" data-id="${t.id}" data-orig="${tn}"
-             onblur="renameTopic(this)" onkeydown="if(event.key==='Enter')this.blur()"/>
+      <input class="topic-name" value="${tn}" data-id="${t.id}" data-orig="${tn}"/>
       <div style="display:flex;gap:3px;flex-shrink:0">${prioButtons}</div>
       <span style="font-size:.65rem;color:var(--ink3);white-space:nowrap">${t.cnt_7d}次/周</span>
-      <select class="topic-reassign" title="迁移到其他分类"
-              onchange="reassignTopic(${t.id},'${tn}','${sn}',this)">
+      <select class="topic-reassign" title="迁移到其他分类" data-tid="${t.id}" data-tname="${tn}">
         <option value="">迁移到…</option>${opts}
       </select>
-      <button class="topic-del" onclick="deleteTopic(${t.id},'${tn}')">✕</button>
+      <button class="topic-del" data-tid="${t.id}" data-tname="${tn}">✕</button>
     </div>`;
   }).join('');
 
@@ -1451,14 +1460,44 @@ function _renderTopicsPanel(){
 
   el.innerHTML=header+rows+emptyHint+addRow;
 
-  // 用 addEventListener 绑定事件（比 onclick 属性更可靠）
+  // ── addEventListener（全部替代 onclick/onchange/onblur 属性）──
+  // 分类改名输入框
+  var catNameInput=el.querySelector('.scat-name');
+  if(catNameInput){
+    catNameInput.addEventListener('blur', function(){ renameCat(this); });
+    catNameInput.addEventListener('keydown', function(e){ if(e.key==='Enter') this.blur(); });
+  }
+
+  // 主题行：改名、优先级、迁移、删除
+  el.querySelectorAll('.topic-row').forEach(function(row){
+    var nameInput=row.querySelector('.topic-name');
+    if(nameInput){
+      nameInput.addEventListener('blur', function(){ renameTopic(this); });
+      nameInput.addEventListener('keydown', function(e){ if(e.key==='Enter') this.blur(); });
+    }
+    row.querySelectorAll('.prio-btn').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        setPriority(parseInt(this.dataset.tid), this.dataset.prio, _selectedCat);
+      });
+    });
+    var reassign=row.querySelector('.topic-reassign');
+    if(reassign) reassign.addEventListener('change', function(){
+      reassignTopic(parseInt(this.dataset.tid), this.dataset.tname, _selectedCat, this);
+    });
+    var delBtn=row.querySelector('.topic-del');
+    if(delBtn) delBtn.addEventListener('click', function(){
+      deleteTopic(parseInt(this.dataset.tid), this.dataset.tname);
+    });
+  });
+
+  // 添加主题按钮
   if(_selectedCat!==''){
-    const _addBtn=el.querySelector('#btn-add-topic');
-    const _addInput=el.querySelector('#topic-add-input-panel');
-    if(_addBtn && _addInput){
-      _addBtn.addEventListener('click', function(){ _doAddTopic(_addInput); });
-      _addInput.addEventListener('keydown', function(e){
-        if(e.key==='Enter'){ e.preventDefault(); _doAddTopic(_addInput); }
+    var addBtn=el.querySelector('#btn-add-topic');
+    var addInput=el.querySelector('#topic-add-input-panel');
+    if(addBtn && addInput){
+      addBtn.addEventListener('click', function(){ _doAddTopic(addInput); });
+      addInput.addEventListener('keydown', function(e){
+        if(e.key==='Enter'){ e.preventDefault(); _doAddTopic(addInput); }
       });
     }
   }
@@ -1571,7 +1610,11 @@ async function _doAddTopic(inputEl){
     await renderCatsTopics();
     renderFocusTopics();
   } catch(e){
-    await customAlert('添加失败：'+e.message);
+    const msg=e.message||'';
+    if(msg.includes('already exists')||msg.includes('409'))
+      await customAlert('该主题名称已存在，请换一个名称');
+    else
+      await customAlert('添加失败：'+msg);
   }
 }
 
