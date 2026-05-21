@@ -1399,7 +1399,9 @@ function _renderTopicsPanel(){
   }
   const cat=_allCats.find(c=>c.name===_selectedCat);
   const color=cat?cat.color:'var(--ink3)';
-  const catTopics=_allTopics.filter(t=>(t.category||'')===_selectedCat);
+  // 设置页按 id 降序排列（新主题显示在顶部）
+  const catTopics=_allTopics.filter(t=>(t.category||'')===_selectedCat)
+                             .sort((a,b)=>b.id-a.id);
   const otherCats=_allCats.filter(c=>c.name!==_selectedCat).map(c=>c.name);
 
   const catLabel=_selectedCat===''?'未分类':esc(_selectedCat);
@@ -1439,14 +1441,15 @@ function _renderTopicsPanel(){
   const emptyHint=catTopics.length===0
     ?`<div style="color:var(--ink3);font-size:.78rem;padding:8px 0 12px">此分类下暂无关注主题</div>`:'';
 
-  // 添加主题行
+  // 添加主题行 — 用固定 id 避免 previousElementSibling 跨浏览器问题
+  const addInputId='topic-add-input-panel';
   const addRow=_selectedCat!==''?`<div style="display:flex;gap:6px;margin-top:10px;align-items:center">
-    <input class="m-input topic-new-input" type="text" placeholder="新主题名称"
+    <input id="${addInputId}" class="m-input topic-new-input" type="text" placeholder="新主题名称"
            style="margin:0;flex:1;font-size:.8rem;padding:5px 8px"
            data-cat="${sn}"
-           onkeydown="if(event.key==='Enter')addTopic(this)"/>
+           onkeydown="if(event.key==='Enter')_addTopicFromPanel()"/>
     <button class="btn-add" style="padding:5px 12px;font-size:.78rem"
-            onclick="addTopic(this.previousElementSibling)">+ 添加</button>
+            onclick="_addTopicFromPanel()">+ 添加</button>
   </div>`:'';
 
   el.innerHTML=header+rows+emptyHint+addRow;
@@ -1540,6 +1543,11 @@ async function copyExport(){
   }
 }
 
+function _addTopicFromPanel(){
+  const el=document.getElementById('topic-add-input-panel');
+  if(el) addTopic(el);
+}
+
 async function addTopic(inputEl){
   const name=inputEl.value.trim();
   const cat=inputEl.dataset.cat||'';
@@ -1548,6 +1556,9 @@ async function addTopic(inputEl){
     headers:{'Content-Type':'application/json'},body:JSON.stringify({name,category:cat})});
   if(r.error){await customAlert(r.error);return;}
   inputEl.value='';
+  // 短暂绿色边框反馈
+  inputEl.style.borderBottom='2px solid #2a8a50';
+  setTimeout(()=>{inputEl.style.borderBottom='';},1200);
   await renderCatsTopics();
   renderFocusTopics();
 }
