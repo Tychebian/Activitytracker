@@ -392,9 +392,15 @@ enum APIHandlers {
     }
 
     static func updateTask(_ r: Req) throws -> APIResponse {
-        guard let id    = r.ppInt("id")   else { throw APIError.bad("id required") }
-        guard let title = r.str("title")  else { throw APIError.bad("title required") }
-        Database.shared.updateTaskTitle(id: id, title: title)
+        guard let id = r.ppInt("id") else { throw APIError.bad("id required") }
+        let title     = r.str("title")
+        let topicName = r.str("topic_name")
+        let category  = r.str("category")
+        let scope     = r.str("scope")
+        let scopeDate = r.str("scope_date")
+        if let s = scope, !["day","week","month"].contains(s) { throw APIError.bad("invalid scope") }
+        Database.shared.updateTask(id: id, title: title, topicName: topicName,
+                                   category: category, scope: scope, scopeDate: scopeDate)
         return try .json(["ok": true])
     }
 

@@ -332,6 +332,89 @@ def api_act_delete(aid):
     return jsonify({"ok": True})
 
 
+@app.route("/api/tasks", methods=["GET"])
+def api_tasks_list():
+    scope      = request.args.get("scope")
+    scope_date = request.args.get("scope_date")
+    topic      = request.args.get("topic")
+    done       = request.args.get("done")
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        conds, params = ["1=1"], []
+        if scope:      conds.append("scope=?");       params.append(scope)
+        if scope_date: conds.append("scope_date=?");  params.append(scope_date)
+        if topic:      conds.append("topic_name=?");  params.append(topic)
+        if done is not None:
+            try: params.append(int(done)); conds.append("done=?")
+            except ValueError: pass
+        rows = conn.execute(
+            f"SELECT * FROM tasks WHERE {' AND '.join(conds)} ORDER BY created_at DESC",
+            params
+        ).fetchall()
+    return jsonify([dict(r) for r in rows])
+
+
+@app.route("/api/tasks", methods=["POST"])
+def api_tasks_create():
+    data       = request.get_json(force=True) or {}
+    title      = (data.get("title") or "").strip()
+    topic_name = (data.get("topic_name") or "").strip()
+    category   = (data.get("category") or "").strip()
+    scope      = (data.get("scope") or "day").strip()
+    scope_date = (data.get("scope_date") or "").strip()
+    if not title: return jsonify({"error": "title required"}), 400
+    if scope not in ("day", "week", "month"):
+        return jsonify({"error": "invalid scope"}), 400
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.execute(
+            "INSERT INTO tasks (title,topic_name,category,scope,scope_date,created_at) VALUES (?,?,?,?,?,?)",
+            (title, topic_name, category, scope, scope_date,
+             datetime.now().isoformat(timespec="seconds"))
+        )
+    return jsonify({"ok": True, "id": cur.lastrowid})
+
+
+@app.route("/api/tasks/<int:tid>", methods=["PUT"])
+def api_tasks_update(tid):
+    data  = request.get_json(force=True) or {}
+    title = (data.get("title") or "").strip()
+    if not title: return jsonify({"error": "title required"}), 400
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("UPDATE tasks SET title=? WHERE id=?", (title, tid))
+    return jsonify({"ok": True})
+
+
+@app.route("/api/tasks/<int:tid>", methods=["DELETE"])
+def api_tasks_delete(tid):
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute("DELETE FROM tasks WHERE id=?", (tid,))
+    return jsonify({"ok": True})
+
+
+@app.route("/api/tasks/<int:tid>/complete", methods=["POST"])
+def api_tasks_complete(tid):
+    from db import save_activity_for_slot, get_slot_record
+    data      = request.get_json(force=True) or {}
+    category  = (data.get("category") or "").strip() or "工作"
+    note      = (data.get("note") or "").strip()
+    timestamp = (data.get("timestamp") or datetime.now().isoformat(timespec="seconds")).strip()
+    end_time  = (data.get("end_time") or "").strip() or None
+    with sqlite3.connect(DB_PATH) as conn:
+        row = conn.execute("SELECT title FROM tasks WHERE id=?", (tid,)).fetchone()
+        if not row: return jsonify({"error": "task not found"}), 404
+        if not note: note = row[0]
+        conn.execute(
+            "INSERT INTO activities (timestamp,category,note,end_time) VALUES (?,?,?,?)",
+            (timestamp, category, note, end_time)
+        )
+        act_id = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+        conn.execute(
+            "UPDATE tasks SET done=1,done_at=?,activity_id=? WHERE id=?",
+            (datetime.now().isoformat(timespec="seconds"), act_id, tid)
+        )
+    return jsonify({"ok": True, "activity_id": act_id})
+
+
 @app.route("/api/export")
 def api_export():
     from flask import Response

@@ -466,6 +466,27 @@ body::before {
 .topic-reassign:focus { outline: 1px solid var(--gold); }
 .topic-del { background: none; border: none; color: var(--ink3); cursor: pointer; font-size: .82rem; padding: 2px 5px; border-radius: 3px; flex-shrink: 0; }
 .topic-del:hover { color: #a02808; background: #fde8e0; }
+/* cat settings tab */
+.cat-settings-row {
+  display:flex; align-items:center; gap:10px;
+  padding:8px 12px; background:var(--parch2);
+  border:1px solid var(--border2); border-radius:6px; margin:4px 0;
+}
+.cat-settings-del { flex-shrink:0; }
+.cat-settings-del:hover { color:#a02808; background:#fde8e0; }
+/* topic settings tab */
+.topic-settings-row {
+  display:flex; align-items:center; gap:8px;
+  padding:7px 12px; background:var(--parch2);
+  border:1px solid var(--border2); border-radius:6px; margin:4px 0;
+}
+/* task settings tab */
+.task-settings-row {
+  display:flex; align-items:center; gap:8px;
+  padding:7px 12px; background:var(--parch2);
+  border:1px solid var(--border2); border-radius:6px; margin:4px 0;
+}
+.task-settings-title { flex:1; font-size:.84rem; color:var(--ink); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .topic-add-row {
   display: flex; gap: 6px; align-items: center;
   padding: 6px 0 2px 14px; border-top: 1px dashed var(--border);
@@ -615,8 +636,10 @@ body::before {
   <!-- 子标签栏 -->
   <div class="stab-row">
     <button class="stab on" id="stab-timer"  onclick="switchSTab('timer')">⏱ 计时设置</button>
-    <button class="stab"    id="stab-cats"   onclick="switchSTab('cats')">📂 分类与主题</button>
-    <button class="stab"    id="stab-export" onclick="switchSTab('export')">📤 导出</button>
+    <button class="stab"    id="stab-cats"   onclick="switchSTab('cats')">📂 分类设置</button>
+    <button class="stab"    id="stab-topics" onclick="switchSTab('topics')">🎯 主题设置</button>
+    <button class="stab"    id="stab-tasks"  onclick="switchSTab('tasks')">📋 任务设置</button>
+    <button class="stab"    id="stab-export" onclick="switchSTab('export')">📤 一键导出</button>
   </div>
 
   <!-- Tab 1: 计时设置 -->
@@ -651,7 +674,81 @@ body::before {
     </div>
   </div>
 
-  <!-- Tab 3: 导出 -->
+  <!-- Tab 2: 分类设置 -->
+  <div id="stab-cats-pane" class="settings-panel" style="display:none;max-width:560px">
+    <div class="section-title" style="margin-bottom:14px">活动分类</div>
+    <div id="cats-settings-list"></div>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:16px;padding-top:14px;border-top:1px dashed var(--border)">
+      <div id="add-dot" onclick="openCpicker(this,'__new__')"
+           style="width:16px;height:16px;border-radius:50%;background:var(--crimson);cursor:pointer;flex-shrink:0;border:2px solid var(--border2)"></div>
+      <input id="add-input" class="m-input" type="text" placeholder="新分类名称"
+             style="margin:0;flex:1;padding:6px 10px"
+             onkeydown="if(event.key==='Enter')addCat()"/>
+      <button class="btn-add" style="padding:6px 16px" onclick="addCat()">+ 添加</button>
+    </div>
+  </div>
+
+  <!-- Tab 3: 主题设置 -->
+  <div id="stab-topics-pane" class="settings-panel" style="display:none;max-width:620px">
+    <div class="section-title" style="margin-bottom:14px">关注主题</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <span style="font-size:.78rem;color:var(--ink2);white-space:nowrap">所属分类：</span>
+      <select id="topic-cat-filter" class="m-input" style="margin:0;flex:1;max-width:200px"></select>
+    </div>
+    <div id="topics-settings-list"></div>
+    <div id="topic-add-row" style="display:none;flex-direction:row;gap:8px;align-items:center;margin-top:14px;padding-top:12px;border-top:1px dashed var(--border)">
+      <input id="topic-add-input-panel" class="m-input topic-new-input" type="text" placeholder="新主题名称"
+             style="margin:0;flex:1;padding:6px 10px" data-cat=""/>
+      <button id="btn-add-topic" class="btn-add" style="padding:6px 16px">+ 添加</button>
+    </div>
+  </div>
+
+  <!-- Tab 4: 任务设置 -->
+  <div id="stab-tasks-pane" class="settings-panel" style="display:none;max-width:660px">
+    <div class="section-title" style="margin-bottom:14px">任务管理</div>
+    <!-- 过滤行：分类 + 主题 + 范围（均可选） -->
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+      <select id="task-filter-cat" class="m-input" style="margin:0;flex:1;max-width:150px">
+        <option value="">全部分类</option>
+      </select>
+      <select id="task-filter-topic" class="m-input" style="margin:0;flex:1;max-width:150px">
+        <option value="">全部主题</option>
+      </select>
+      <select id="task-filter-scope" class="m-input" style="margin:0;max-width:120px">
+        <option value="">全部范围</option>
+        <option value="day">按日</option>
+        <option value="week">按周</option>
+        <option value="month">按月</option>
+      </select>
+    </div>
+    <div id="tasks-settings-list"></div>
+    <!-- 新建任务：分类和主题必选 -->
+    <div style="margin-top:16px;padding-top:14px;border-top:1px dashed var(--border)">
+      <div style="font-size:.72rem;color:var(--ink3);margin-bottom:8px;letter-spacing:.04em">
+        新建任务 <span style="color:var(--crimson)">*分类和主题必选</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <select id="task-new-cat" class="m-input" style="margin:0">
+          <option value="">* 选择分类</option>
+        </select>
+        <select id="task-new-topic" class="m-input" style="margin:0" disabled>
+          <option value="">* 先选分类</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input id="task-new-title" class="m-input" type="text" placeholder="任务名称（必填）"
+               style="margin:0;flex:1;min-width:140px;padding:6px 10px"/>
+        <select id="task-new-scope" class="m-input" style="margin:0;max-width:90px">
+          <option value="day">按日</option>
+          <option value="week">按周</option>
+          <option value="month">按月</option>
+        </select>
+        <button class="btn-add" style="padding:6px 14px;white-space:nowrap" id="task-new-add-btn">+ 添加</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 5: 导出 -->
   <div id="stab-export-pane" class="settings-panel" style="display:none;max-width:560px">
     <div class="section-title" style="margin-bottom:10px">导出活动记录</div>
     <p style="color:var(--ink3);font-size:.72rem;margin-bottom:16px;line-height:1.6">
@@ -679,32 +776,6 @@ body::before {
                background:var(--parch3);border:1px solid var(--border);border-radius:6px;
                padding:10px;color:var(--ink);resize:vertical;box-sizing:border-box;line-height:1.5">
       </textarea>
-    </div>
-  </div>
-
-  <!-- Tab 2: 分类与主题（左右布局） -->
-  <div id="stab-cats-pane" style="display:none">
-    <div class="lr-layout">
-      <!-- 左栏：分类列表 -->
-      <div class="lr-left">
-        <div style="font-size:.68rem;color:var(--ink3);letter-spacing:.08em;margin-bottom:8px">活动分类</div>
-        <div id="cat-list-panel"></div>
-        <!-- 新增分类 -->
-        <div style="display:flex;gap:6px;margin-top:10px;align-items:center">
-          <div id="add-dot" onclick="openCpicker(this,'__new__')"
-               style="width:14px;height:14px;border-radius:50%;background:var(--ink3);cursor:pointer;flex-shrink:0"></div>
-          <input id="add-input" class="m-input" type="text" placeholder="新分类名称"
-                 style="margin:0;flex:1;font-size:.78rem;padding:5px 8px"
-                 onkeydown="if(event.key==='Enter')addCat()"/>
-          <button class="btn-add" style="padding:4px 10px;font-size:.75rem" onclick="addCat()">+ 添加</button>
-        </div>
-      </div>
-      <!-- 右栏：选中分类的关注主题 -->
-      <div class="lr-right">
-        <div id="topics-panel">
-          <div style="color:var(--ink3);font-size:.8rem;text-align:center;padding:24px 0">← 选择左侧分类查看关注主题</div>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -864,6 +935,46 @@ body::before {
   </div>
 </div>
 
+<!-- ═══════════════════════════════
+     TASK EDIT MODAL
+     ═══════════════════════════════ -->
+<div id="task-edit-overlay" class="overlay">
+  <div class="mbox" style="width:460px">
+    <div class="mbox-title">✎ 编辑任务</div>
+    <label style="font-size:.72rem;color:var(--ink3);letter-spacing:.06em;display:block;margin-bottom:4px">任务标题</label>
+    <input id="te-title" class="m-input" type="text" style="margin:0 0 14px"/>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div>
+        <label style="font-size:.72rem;color:var(--ink3);letter-spacing:.06em;display:block;margin-bottom:4px">分类 <span style="color:var(--crimson)">*</span></label>
+        <select id="te-cat" class="m-input" style="margin:0;width:100%"></select>
+      </div>
+      <div>
+        <label style="font-size:.72rem;color:var(--ink3);letter-spacing:.06em;display:block;margin-bottom:4px">主题 <span style="color:var(--crimson)">*</span></label>
+        <select id="te-topic" class="m-input" style="margin:0;width:100%"></select>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px">
+      <div>
+        <label style="font-size:.72rem;color:var(--ink3);letter-spacing:.06em;display:block;margin-bottom:4px">时间范围</label>
+        <select id="te-scope" class="m-input" style="margin:0;width:100%">
+          <option value="day">按日</option>
+          <option value="week">按周</option>
+          <option value="month">按月</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:.72rem;color:var(--ink3);letter-spacing:.06em;display:block;margin-bottom:4px">关联日期</label>
+        <input id="te-date" class="m-input" type="date" style="margin:0;width:100%"/>
+      </div>
+    </div>
+    <div class="m-btn-row">
+      <div style="flex:1"></div>
+      <button class="btn-cancel" id="te-cancel">取消</button>
+      <button class="btn-save" id="te-save">✓ 保存</button>
+    </div>
+  </div>
+</div>
+
 <!-- color picker -->
 <div id="cpicker"></div>
 
@@ -896,6 +1007,7 @@ let cpTarget=null, cpOldName=null, newCatColor='#c8320a';
 let _allTasks=[];
 let _completingTask=null;  // {id, category, title, scope_date}
 let _addTaskScope='day', _addTaskScopeDate='';
+let _editingTask=null;     // full task object being edited
 
 const PALETTE=[
   "#c8320a","#1a5fa3","#6b1a8a","#b07a10","#c83264",
@@ -936,10 +1048,11 @@ function scopeLabel(s){return s==='day'?'日':s==='week'?'周':'月';}
 
 // Build & inject task section into a container element
 async function renderTaskSection(containerEl,scope,scopeDate){
-  const tasks=await api(`/api/tasks?scope=${scope}&scope_date=${encodeURIComponent(scopeDate)}&done=0`);
+  let tasks=[];
+  try{ tasks=await api(`/api/tasks?scope=${scope}&scope_date=${encodeURIComponent(scopeDate)}&done=0`); }catch(_){}
   const label=scope==='day'?'今日任务':scope==='week'?'本周任务':'本月任务';
   const taskRows=tasks.map(t=>`
-    <div class="task-item" data-tid="${t.id}">
+    <div class="task-item" data-tid="${t.id}" style="cursor:pointer" title="点击编辑">
       <button class="task-check" data-tid="${t.id}" data-cat="${esc(t.category||'')}"
               data-topic="${esc(t.topic_name||'')}" data-title="${esc(t.title)}"
               data-sd="${esc(scopeDate)}" title="标记完成">○</button>
@@ -959,14 +1072,25 @@ async function renderTaskSection(containerEl,scope,scopeDate){
   // attach listeners
   containerEl.querySelector(`#task-add-btn-${scope}`)
     ?.addEventListener('click',()=>openAddTask(scope,scopeDate));
+  containerEl.querySelectorAll('.task-item').forEach(row=>{
+    // whole row click → edit (except check/delete buttons)
+    row.addEventListener('click',e=>{
+      if(e.target.closest('.task-check,.task-del-btn')) return;
+      const tid=+row.dataset.tid;
+      const t=tasks.find(x=>x.id===tid);
+      if(t) openEditTask(t, ()=>renderTaskSection(containerEl,scope,scopeDate));
+    });
+  });
   containerEl.querySelectorAll('.task-check').forEach(btn=>{
     btn.addEventListener('click',e=>{
+      e.stopPropagation();
       const b=e.currentTarget;
       openTaskComplete(+b.dataset.tid,b.dataset.cat,b.dataset.topic,b.dataset.title,b.dataset.sd);
     });
   });
   containerEl.querySelectorAll('.task-del-btn').forEach(btn=>{
     btn.addEventListener('click',e=>{
+      e.stopPropagation();
       const tid=+e.currentTarget.dataset.tid;
       deleteTaskItem(tid,containerEl,scope,scopeDate);
     });
@@ -1470,11 +1594,16 @@ async function applyInterval(mins){
    SETTINGS — SUB-TABS
    ═══════════════════════════════ */
 function switchSTab(tab){
-  ['timer','cats','export'].forEach(t=>{
-    document.getElementById('stab-'+t).className='stab'+(t===tab?' on':'');
-    document.getElementById('stab-'+t+'-pane').style.display=t===tab?'':'none';
+  ['timer','cats','topics','tasks','export'].forEach(t=>{
+    const btn=document.getElementById('stab-'+t);
+    const pane=document.getElementById('stab-'+t+'-pane');
+    if(btn)  btn.className='stab'+(t===tab?' on':'');
+    if(pane) pane.style.display=t===tab?'':'none';
   });
-  if(tab==='export') initExportDates();
+  if(tab==='cats')   _renderCatSettings();
+  else if(tab==='topics') _renderTopicSettings();
+  else if(tab==='tasks')  _renderTaskSettings();
+  else if(tab==='export') initExportDates();
 }
 
 async function renderSTab1(){
@@ -1512,212 +1641,134 @@ let _selectedCat=null;
 let _allCats=[], _allTopics=[];
 
 async function renderCatsTopics(){
-  [_allCats,_allTopics,_allTasks]=await Promise.all([
-    api('/api/categories'),api('/api/focus_topics'),api('/api/tasks?done=0')
-  ]);
-  _renderCatList();
-  _renderTopicsPanel();
+  [_allCats,_allTopics]=await Promise.all([api('/api/categories'),api('/api/focus_topics')]);
+  try{ _allTasks=await api('/api/tasks?done=0'); }catch(_){ _allTasks=[]; }
+  // render whichever tab is currently active
+  const activeId=document.querySelector('#settings-pane .stab.on')?.id||'stab-timer';
+  const activeTab=activeId.replace('stab-','');
+  if(activeTab==='cats')   _renderCatSettings();
+  else if(activeTab==='topics') _renderTopicSettings();
+  else if(activeTab==='tasks')  _renderTaskSettings();
 }
 
-function _renderCatList(){
-  const el=document.getElementById('cat-list-panel');
+function _renderCatSettings(){
+  const el=document.getElementById('cats-settings-list');
   if(!el)return;
   const cnt={};
   _allTopics.forEach(t=>{ const k=t.category||''; cnt[k]=(cnt[k]||0)+1; });
-
-  let html=_allCats.map(cat=>{
-    const sel=_selectedCat===cat.name;
-    const n=cnt[cat.name]||0;
-    return`<div class="cat-list-item${sel?' selected':''}" data-cat="${esc(cat.name)}">
-      <div class="cat-dot" style="background:${cat.color}"></div>
-      <span class="cat-item-name" style="color:${cat.color}">${esc(cat.name)}</span>
-      <span class="cat-item-cnt">${n?n+'个':''}</span>
-      <div class="cat-actions">
-        <button class="cat-action-btn cat-color-btn" title="改颜色">⬤</button>
-        <button class="cat-action-btn cat-del-btn" title="删除">✕</button>
-      </div>
-    </div>`;
-  }).join('');
-
-  const uncat=cnt['']||0;
-  if(uncat>0){
-    const sel=_selectedCat==='';
-    html+=`<div class="cat-list-item${sel?' selected':''}" data-cat="" style="opacity:.7">
-      <div class="cat-dot" style="background:var(--ink3)"></div>
-      <span class="cat-item-name" style="color:var(--ink3)">未分类</span>
-      <span class="cat-item-cnt">${uncat}个</span>
-    </div>`;
+  if(!_allCats.length){
+    el.innerHTML='<div style="color:var(--ink3);font-size:.8rem;text-align:center;padding:24px 0">暂无分类，请添加</div>';
+    return;
   }
-  el.innerHTML=html;
-
-  // addEventListener — 比 onclick 属性更可靠
-  el.querySelectorAll('.cat-list-item').forEach(function(item){
-    var catName=item.dataset.cat;
-    item.addEventListener('click', function(e){
-      if(!e.target.closest('.cat-actions')) selectCat(catName);
-    });
-    var colorBtn=item.querySelector('.cat-color-btn');
-    if(colorBtn) colorBtn.addEventListener('click', function(e){
-      e.stopPropagation();
-      openCpicker(item.querySelector('.cat-dot'), catName);
-    });
-    var delBtn=item.querySelector('.cat-del-btn');
-    if(delBtn) delBtn.addEventListener('click', function(e){
-      e.stopPropagation();
-      deleteCat(catName);
-    });
+  el.innerHTML=_allCats.map(cat=>`
+    <div class="cat-settings-row" data-cat="${esc(cat.name)}">
+      <div class="scat-dot" style="background:${cat.color};cursor:pointer" title="点击改颜色"></div>
+      <input class="cat-settings-name" value="${esc(cat.name)}" data-orig="${esc(cat.name)}"
+             style="flex:1;border:none;background:transparent;font-size:.87rem;padding:3px 8px;
+                    border-radius:4px;outline:none;color:var(--ink);cursor:text"/>
+      <span style="font-size:.68rem;color:var(--ink3);flex-shrink:0;min-width:50px;text-align:right">${cnt[cat.name]||0}个主题</span>
+      <button class="cat-settings-del" style="background:none;border:none;color:var(--ink3);cursor:pointer;
+              padding:4px 8px;border-radius:4px;font-size:.82rem">✕</button>
+    </div>`).join('');
+  el.querySelectorAll('.cat-settings-row').forEach(row=>{
+    const catName=row.dataset.cat;
+    const dot=row.querySelector('.scat-dot');
+    if(dot) dot.addEventListener('click', e=>{ e.stopPropagation(); openCpicker(dot, catName); });
+    const nameInput=row.querySelector('.cat-settings-name');
+    if(nameInput){
+      nameInput.addEventListener('focus', ()=>{ nameInput.style.background='var(--parch3)'; nameInput.style.outline='1px solid var(--border)'; });
+      nameInput.addEventListener('blur', ()=>{ nameInput.style.background='transparent'; nameInput.style.outline='none'; renameCat(nameInput); });
+      nameInput.addEventListener('keydown', e=>{ if(e.key==='Enter') nameInput.blur(); });
+    }
+    const delBtn=row.querySelector('.cat-settings-del');
+    if(delBtn) delBtn.addEventListener('click', ()=>deleteCat(catName));
   });
 }
 
 function selectCat(name){
   _selectedCat=name;
-  _renderCatList();
-  _renderTopicsPanel();
+  _renderTopicSettings();
 }
 
-function _renderTopicsPanel(){
-  const el=document.getElementById('topics-panel');
+function _renderTopicSettings(){
+  const filterSel=document.getElementById('topic-cat-filter');
+  if(!filterSel)return;
+  // populate filter
+  const prevVal=_selectedCat||filterSel.value||(_allCats[0]?.name)||'';
+  filterSel.innerHTML='<option value="">-- 请选择分类 --</option>'+
+    _allCats.map(c=>`<option value="${esc(c.name)}"${c.name===prevVal?' selected':''}>${esc(c.name)}</option>`).join('');
+  _selectedCat=filterSel.value;
+
+  const el=document.getElementById('topics-settings-list');
   if(!el)return;
-  if(_selectedCat===null){
-    el.innerHTML='<div style="color:var(--ink3);font-size:.8rem;text-align:center;padding:24px 0">← 选择左侧分类查看关注主题</div>';
+
+  // show/hide add row
+  const addRow=document.getElementById('topic-add-row');
+  if(addRow) addRow.style.display=_selectedCat?'flex':'none';
+  const addInput=document.getElementById('topic-add-input-panel');
+  if(addInput) addInput.dataset.cat=esc(_selectedCat||'');
+
+  if(!_selectedCat){
+    el.innerHTML='<div style="color:var(--ink3);font-size:.78rem;text-align:center;padding:20px 0">请先选择分类</div>';
     return;
   }
-  const cat=_allCats.find(c=>c.name===_selectedCat);
-  const color=cat?cat.color:'var(--ink3)';
-  // 设置页按 id 降序排列（新主题显示在顶部）
-  const catTopics=_allTopics.filter(t=>(t.category||'')===_selectedCat)
-                             .sort((a,b)=>b.id-a.id);
+
+  const catTopics=_allTopics.filter(t=>(t.category||'')===_selectedCat).sort((a,b)=>b.id-a.id);
   const otherCats=_allCats.filter(c=>c.name!==_selectedCat).map(c=>c.name);
 
-  const catLabel=_selectedCat===''?'未分类':esc(_selectedCat);
-  const sn=esc(_selectedCat).replace(/'/g,"&#39;");
-
-  // 分类标题行（可改名，非"未分类"）
-  let header='';
-  if(_selectedCat!==''){
-    header=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:8px;border-bottom:1.5px solid var(--border)">
-      <div style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0"></div>
-      <input class="scat-name" style="flex:1;font-size:.88rem;font-weight:700" value="${sn}" data-orig="${sn}"
-             onblur="renameCat(this)" onkeydown="if(event.key==='Enter')this.blur()"/>
-    </div>`;
-  } else {
-    header=`<div style="font-size:.82rem;font-weight:700;color:var(--ink3);margin-bottom:12px;padding-bottom:8px;border-bottom:1.5px solid var(--border)">未分类主题</div>`;
+  if(!catTopics.length){
+    el.innerHTML='<div style="color:var(--ink3);font-size:.78rem;text-align:center;padding:16px 0">该分类下暂无主题</div>';
+    _attachTopicAddBtn();
+    return;
   }
 
-  const rows=catTopics.map(t=>{
+  const PRIO_ORDER={'高':0,'中':1,'低':2};
+  const sorted=[...catTopics].sort((a,b)=>(PRIO_ORDER[a.priority??'中']??1)-(PRIO_ORDER[b.priority??'中']??1));
+
+  el.innerHTML=sorted.map(t=>{
     const tn=esc(t.name);
-    const opts=(_selectedCat===''?_allCats:otherCats).map(c=>`<option value="${esc(c.name||c)}">${esc(c.name||c)}</option>`).join('');
     const prio=t.priority||'中';
     const prioButtons=['高','中','低'].map(p=>`<button class="prio-btn${prio===p?' active-'+p:''}" data-tid="${t.id}" data-prio="${p}">${p}</button>`).join('');
-    // tasks under this topic
-    const topicTasks=_allTasks.filter(tk=>tk.topic_name===t.name);
-    const taskHtml=topicTasks.map(tk=>`
-      <div class="topic-task-row" data-task-id="${tk.id}">
-        <span class="task-scope-badge">${scopeLabel(tk.scope)}</span>
-        <span class="topic-task-title">${esc(tk.title)}</span>
-        <span style="font-size:.62rem;color:var(--ink3)">${tk.scope_date||''}</span>
-        <button class="topic-task-del" data-task-id="${tk.id}" title="删除任务">✕</button>
-      </div>`).join('');
-    const addTaskRow=`<div class="topic-task-row" style="gap:5px">
-      <input class="m-input topic-task-input" type="text" placeholder="新建任务…"
-             style="flex:1;margin:0;font-size:.74rem;padding:3px 7px"
-             data-topic="${tn}" data-cat="${sn}"/>
-      <select class="topic-task-scope" style="font-size:.72rem;padding:3px 5px;border:1px solid var(--border);border-radius:4px;background:var(--parch3);color:var(--ink3)">
-        <option value="day">按日</option>
-        <option value="week">按周</option>
-        <option value="month">按月</option>
-      </select>
-      <button class="topic-task-add-btn btn-add" style="padding:3px 9px;font-size:.72rem">+</button>
-    </div>`;
-    return`<div class="topic-row" style="flex-wrap:wrap;gap:4px">
+    const opts=otherCats.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    return`<div class="topic-settings-row">
       <input class="topic-name" value="${tn}" data-id="${t.id}" data-orig="${tn}"/>
       <div style="display:flex;gap:3px;flex-shrink:0">${prioButtons}</div>
-      <span style="font-size:.65rem;color:var(--ink3);white-space:nowrap">${t.cnt_7d}次/周</span>
-      <select class="topic-reassign" title="迁移到其他分类" data-tid="${t.id}" data-tname="${tn}">
-        <option value="">迁移到…</option>${opts}
-      </select>
+      <span style="font-size:.63rem;color:var(--ink3);white-space:nowrap;flex-shrink:0">${t.cnt_7d}次/周</span>
+      ${otherCats.length?`<select class="topic-reassign" data-tid="${t.id}" data-tname="${tn}"><option value="">迁移到…</option>${opts}</select>`:''}
       <button class="topic-del" data-tid="${t.id}" data-tname="${tn}">✕</button>
-      ${taskHtml}${addTaskRow}
     </div>`;
   }).join('');
 
-  const emptyHint=catTopics.length===0
-    ?`<div style="color:var(--ink3);font-size:.78rem;padding:8px 0 12px">此分类下暂无关注主题</div>`:'';
-
-  // 添加主题行 — 无 onclick 属性，改用 addEventListener（WKWebView 最可靠）
-  const addRow=_selectedCat!==''?`<div style="display:flex;gap:6px;margin-top:10px;align-items:center">
-    <input id="topic-add-input-panel" class="m-input topic-new-input" type="text" placeholder="新主题名称"
-           style="margin:0;flex:1;font-size:.8rem;padding:5px 8px"
-           data-cat="${sn}"/>
-    <button id="btn-add-topic" class="btn-add" style="padding:5px 12px;font-size:.78rem">+ 添加</button>
-  </div>`:'';
-
-  el.innerHTML=header+rows+emptyHint+addRow;
-
-  // ── addEventListener（全部替代 onclick/onchange/onblur 属性）──
-  // 分类改名输入框
-  var catNameInput=el.querySelector('.scat-name');
-  if(catNameInput){
-    catNameInput.addEventListener('blur', function(){ renameCat(this); });
-    catNameInput.addEventListener('keydown', function(e){ if(e.key==='Enter') this.blur(); });
-  }
-
-  // 主题行：改名、优先级、迁移、删除
-  el.querySelectorAll('.topic-row').forEach(function(row){
-    var nameInput=row.querySelector('.topic-name');
+  el.querySelectorAll('.topic-settings-row').forEach(row=>{
+    const nameInput=row.querySelector('.topic-name');
     if(nameInput){
-      nameInput.addEventListener('blur', function(){ renameTopic(this); });
-      nameInput.addEventListener('keydown', function(e){ if(e.key==='Enter') this.blur(); });
+      nameInput.addEventListener('blur', ()=>renameTopic(nameInput));
+      nameInput.addEventListener('keydown', e=>{ if(e.key==='Enter') nameInput.blur(); });
     }
-    row.querySelectorAll('.prio-btn').forEach(function(btn){
-      btn.addEventListener('click', function(){
-        setPriority(parseInt(this.dataset.tid), this.dataset.prio, _selectedCat);
-      });
+    row.querySelectorAll('.prio-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>setPriority(+btn.dataset.tid, btn.dataset.prio, _selectedCat));
     });
-    var reassign=row.querySelector('.topic-reassign');
-    if(reassign) reassign.addEventListener('change', function(){
-      reassignTopic(parseInt(this.dataset.tid), this.dataset.tname, _selectedCat, this);
-    });
-    var delBtn=row.querySelector('.topic-del');
-    if(delBtn) delBtn.addEventListener('click', function(){
-      deleteTopic(parseInt(this.dataset.tid), this.dataset.tname);
-    });
-    // task rows under topic
-    row.querySelectorAll('.topic-task-del').forEach(function(btn){
-      btn.addEventListener('click', function(){
-        deleteTaskItem(+this.dataset.taskId, null, null, null, true);
-      });
-    });
-    var taskAddBtn=row.querySelector('.topic-task-add-btn');
-    if(taskAddBtn){
-      taskAddBtn.addEventListener('click', function(){
-        var inp=row.querySelector('.topic-task-input');
-        var scopeSel=row.querySelector('.topic-task-scope');
-        _addTaskFromSettings(inp, scopeSel);
-      });
-    }
-    var taskInput=row.querySelector('.topic-task-input');
-    if(taskInput){
-      taskInput.addEventListener('keydown', function(e){
-        if(e.key==='Enter'){
-          e.preventDefault();
-          var scopeSel=row.querySelector('.topic-task-scope');
-          _addTaskFromSettings(this, scopeSel);
-        }
-      });
-    }
+    const reassign=row.querySelector('.topic-reassign');
+    if(reassign) reassign.addEventListener('change', ()=>reassignTopic(+reassign.dataset.tid, reassign.dataset.tname, _selectedCat, reassign));
+    const delBtn=row.querySelector('.topic-del');
+    if(delBtn) delBtn.addEventListener('click', ()=>deleteTopic(+delBtn.dataset.tid, delBtn.dataset.tname));
   });
 
-  // 添加主题按钮
-  if(_selectedCat!==''){
-    var addBtn=el.querySelector('#btn-add-topic');
-    var addInput=el.querySelector('#topic-add-input-panel');
-    if(addBtn && addInput){
-      addBtn.addEventListener('click', function(){ _doAddTopic(addInput); });
-      addInput.addEventListener('keydown', function(e){
-        if(e.key==='Enter'){ e.preventDefault(); _doAddTopic(addInput); }
-      });
-    }
+  _attachTopicAddBtn();
+}
+
+function _attachTopicAddBtn(){
+  const addBtn=document.getElementById('btn-add-topic');
+  const addInput=document.getElementById('topic-add-input-panel');
+  if(addBtn && addInput){
+    addBtn.addEventListener('click', ()=>_doAddTopic(addInput));
+    addInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){e.preventDefault();_doAddTopic(addInput);} });
+  }
+  // wire category filter change
+  const filterSel=document.getElementById('topic-cat-filter');
+  if(filterSel && !filterSel._wired){
+    filterSel._wired=true;
+    filterSel.addEventListener('change', ()=>{ _selectedCat=filterSel.value; _renderTopicSettings(); });
   }
 }
 
@@ -2054,7 +2105,7 @@ async function render(){
    TASKS — CRUD & MODALS
    ═══════════════════════════════ */
 
-// ── Add task from settings panel ──────────────────────
+// ── Add task from settings panel (legacy, kept for compatibility) ──────────
 async function _addTaskFromSettings(inputEl, scopeEl){
   const title=(inputEl.value||'').trim();
   const topicName=inputEl.dataset.topic||'';
@@ -2073,12 +2124,140 @@ async function _addTaskFromSettings(inputEl, scopeEl){
   }catch(e){ await customAlert('添加失败：'+e.message); }
 }
 
+// ── Task settings tab ─────────────────────────────────
+function _renderTaskSettings(){
+  const catSel       = document.getElementById('task-filter-cat');
+  const topicSel     = document.getElementById('task-filter-topic');
+  const scopeSel     = document.getElementById('task-filter-scope');
+  const newCatSel    = document.getElementById('task-new-cat');
+  if(!catSel||!scopeSel)return;
+
+  // populate filter selectors
+  catSel.innerHTML='<option value="">全部分类</option>'+
+    _allCats.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+  if(newCatSel) newCatSel.innerHTML='<option value="">* 选择分类</option>'+
+    _allCats.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+
+  _refreshFilterTopicSel();   // populate filter topic dropdown
+  _refreshNewTaskTopicSel();  // populate new-task topic dropdown (empty until cat chosen)
+  _renderTaskList();
+
+  // wire filter cascades — use _wired guard to avoid stacking listeners
+  if(!catSel._wired){ catSel._wired=true;
+    catSel.addEventListener('change', ()=>{ _refreshFilterTopicSel(); _renderTaskList(); });
+  }
+  if(topicSel && !topicSel._wired){ topicSel._wired=true;
+    topicSel.addEventListener('change', _renderTaskList);
+  }
+  if(!scopeSel._wired){ scopeSel._wired=true;
+    scopeSel.addEventListener('change', _renderTaskList);
+  }
+  // new-task cat → update topic dropdown & enable it
+  if(newCatSel && !newCatSel._wired){ newCatSel._wired=true;
+    newCatSel.addEventListener('change', _refreshNewTaskTopicSel);
+  }
+  const addBtn=document.getElementById('task-new-add-btn');
+  if(addBtn && !addBtn._wired){ addBtn._wired=true;
+    addBtn.addEventListener('click', _addTaskFromSettingsForm);
+  }
+  const titleInput=document.getElementById('task-new-title');
+  if(titleInput && !titleInput._wired){ titleInput._wired=true;
+    titleInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){e.preventDefault();_addTaskFromSettingsForm();} });
+  }
+}
+
+// Filter panel: topic dropdown follows category filter selection
+function _refreshFilterTopicSel(){
+  const catSel   = document.getElementById('task-filter-cat');
+  const topicSel = document.getElementById('task-filter-topic');
+  if(!topicSel)return;
+  const filterCat=catSel?.value||'';
+  const topics=_allTopics.filter(t=>!filterCat||(t.category||'')===filterCat);
+  topicSel.innerHTML='<option value="">全部主题</option>'+
+    topics.map(t=>`<option value="${esc(t.name)}">${esc(t.name)}</option>`).join('');
+}
+
+// New-task form: topic dropdown follows category selection; disabled until cat chosen
+function _refreshNewTaskTopicSel(){
+  const newCatSel  = document.getElementById('task-new-cat');
+  const newTopicSel= document.getElementById('task-new-topic');
+  if(!newTopicSel)return;
+  const cat=newCatSel?.value||'';
+  if(!cat){
+    newTopicSel.innerHTML='<option value="">* 先选分类</option>';
+    newTopicSel.disabled=true;
+    return;
+  }
+  const topics=_allTopics.filter(t=>(t.category||'')===cat);
+  newTopicSel.innerHTML='<option value="">* 选择主题</option>'+
+    topics.map(t=>`<option value="${esc(t.name)}">${esc(t.name)}</option>`).join('');
+  newTopicSel.disabled=false;
+}
+
+function _renderTaskList(){
+  const catSel  = document.getElementById('task-filter-cat');
+  const topicSel= document.getElementById('task-filter-topic');
+  const scopeSel= document.getElementById('task-filter-scope');
+  const el=document.getElementById('tasks-settings-list');
+  if(!el)return;
+  const filterCat  =catSel?.value||'';
+  const filterTopic=topicSel?.value||'';
+  const filterScope=scopeSel?.value||'';
+  let tasks=[..._allTasks];
+  if(filterCat)   tasks=tasks.filter(t=>t.category===filterCat);
+  if(filterTopic) tasks=tasks.filter(t=>t.topic_name===filterTopic);
+  if(filterScope) tasks=tasks.filter(t=>t.scope===filterScope);
+  if(!tasks.length){
+    el.innerHTML=`<div style="color:var(--ink3);font-size:.78rem;text-align:center;padding:20px 0">${_allTasks.length?'没有符合条件的任务':'暂无任务，请在下方添加'}</div>`;
+    return;
+  }
+  const SCOPE_COLORS={'day':'var(--crimson)','week':'var(--blue)','month':'var(--purple)'};
+  el.innerHTML=tasks.map(t=>`
+    <div class="task-settings-row" data-tid="${t.id}" style="cursor:pointer" title="点击编辑">
+      <span class="task-scope-badge" style="color:${SCOPE_COLORS[t.scope]||'var(--gold)'};border-color:${SCOPE_COLORS[t.scope]||'var(--gold)'}">${scopeLabel(t.scope)}</span>
+      <span class="task-settings-title">${esc(t.title)}</span>
+      <span class="task-meta" style="white-space:nowrap">${t.category?esc(t.category):''} ${t.topic_name?'/ '+esc(t.topic_name):''}</span>
+      <span class="task-meta" style="min-width:70px;flex-shrink:0">${t.scope_date||''}</span>
+      <button class="task-del-btn task-settings-del" data-tid="${t.id}" style="opacity:1;flex-shrink:0">✕</button>
+    </div>`).join('');
+  el.querySelectorAll('.task-settings-row').forEach(row=>{
+    const tid=+row.dataset.tid;
+    const t=tasks.find(x=>x.id===tid);
+    row.addEventListener('click', e=>{
+      if(e.target.closest('.task-settings-del')) return;
+      if(t) openEditTask(t, ()=>{ _allTasks=_allTasks; _renderTaskList(); });
+    });
+  });
+  el.querySelectorAll('.task-settings-del').forEach(btn=>{
+    btn.addEventListener('click', e=>{ e.stopPropagation(); deleteTaskItem(+btn.dataset.tid, null, null, null, true); });
+  });
+}
+
+async function _addTaskFromSettingsForm(){
+  const title   =(document.getElementById('task-new-title')?.value||'').trim();
+  const category= document.getElementById('task-new-cat')?.value||'';
+  const topicName=document.getElementById('task-new-topic')?.value||'';
+  const scope   = document.getElementById('task-new-scope')?.value||'day';
+  if(!title)    { await customAlert('请输入任务名称'); return; }
+  if(!category) { await customAlert('请选择所属分类'); return; }
+  if(!topicName){ await customAlert('请选择所属主题'); return; }
+  const scopeDate=taskScopeDate(scope, new Date());
+  try{
+    await api('/api/tasks',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({title,topic_name:topicName,category,scope,scope_date:scopeDate})});
+    document.getElementById('task-new-title').value='';
+    _allTasks=await api('/api/tasks?done=0').catch(()=>[]);
+    _renderTaskList();
+  }catch(e){ await customAlert('添加失败：'+e.message); }
+}
+
 // ── Delete task item ──────────────────────────────────
 async function deleteTaskItem(tid, containerEl, scope, scopeDate, fromSettings){
   if(!await customConfirm('删除该任务？','删除'))return;
   await api(`/api/tasks/${tid}`,{method:'DELETE'});
   if(fromSettings){
-    await renderCatsTopics();
+    _allTasks=await api('/api/tasks?done=0').catch(()=>[]);
+    _renderTaskList();
   } else if(containerEl && scope && scopeDate){
     await renderTaskSection(containerEl, scope, scopeDate);
   } else {
@@ -2180,6 +2359,94 @@ async function submitTaskComplete(){
   }catch(e){ await customAlert('操作失败：'+e.message); }
 }
 
+// ── Task edit modal ───────────────────────────────────
+let _onEditTaskSaved = null;  // callback after save
+
+function openEditTask(task, onSaved){
+  _editingTask = task;
+  _onEditTaskSaved = onSaved || null;
+
+  // populate title
+  document.getElementById('te-title').value = task.title || '';
+
+  // populate category dropdown
+  const catSel = document.getElementById('te-cat');
+  catSel.innerHTML = '<option value="">-- 选择分类 --</option>' +
+    (_allCats||[]).map(c=>`<option value="${esc(c.name)}"${c.name===task.category?' selected':''}>${esc(c.name)}</option>`).join('');
+
+  // populate topic dropdown (filtered to current category)
+  _tePopulateCatTopics(task.category, task.topic_name);
+
+  // scope
+  const scopeSel = document.getElementById('te-scope');
+  scopeSel.value = task.scope || 'day';
+
+  // date field
+  _teUpdateDateInput(task.scope||'day', task.scope_date||'');
+
+  document.getElementById('task-edit-overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('te-title').focus(), 60);
+}
+
+function _tePopulateCatTopics(cat, selectedTopic){
+  const topicSel = document.getElementById('te-topic');
+  const topics = (_allTopics||[]).filter(t=>(t.category||'')===cat);
+  topicSel.innerHTML = '<option value="">-- 选择主题 --</option>' +
+    topics.map(t=>`<option value="${esc(t.name)}"${t.name===selectedTopic?' selected':''}>${esc(t.name)}</option>`).join('');
+}
+
+function _teUpdateDateInput(scope, current){
+  const inp = document.getElementById('te-date');
+  if(scope === 'month'){
+    inp.type = 'month';
+    // scope_date for month is YYYY-MM
+    inp.value = current || `${cur.getFullYear()}-${p2(cur.getMonth()+1)}`;
+  } else {
+    inp.type = 'date';
+    // for week, current is Monday YYYY-MM-DD; for day it's YYYY-MM-DD
+    inp.value = current || fd(cur);
+  }
+}
+
+function closeEditTask(){
+  document.getElementById('task-edit-overlay').classList.remove('open');
+}
+
+async function submitEditTask(){
+  const title    = (document.getElementById('te-title').value||'').trim();
+  const category = document.getElementById('te-cat').value||'';
+  const topicName= document.getElementById('te-topic').value||'';
+  const scope    = document.getElementById('te-scope').value||'day';
+  let   scopeDate= document.getElementById('te-date').value||'';
+
+  if(!title)    { await customAlert('请输入任务标题'); return; }
+  if(!category) { await customAlert('请选择所属分类'); return; }
+  if(!topicName){ await customAlert('请选择所属主题'); return; }
+
+  // for week scope, convert picked date to Monday
+  if(scope==='week' && scopeDate){
+    const d=new Date(scopeDate+'T00:00:00');
+    const dow=d.getDay();
+    d.setDate(d.getDate()-(dow===0?6:dow-1));
+    d.setHours(0,0,0,0);
+    scopeDate=fd(d);
+  }
+
+  try{
+    await api(`/api/tasks/${_editingTask.id}`,{
+      method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({title, topic_name:topicName, category, scope, scope_date:scopeDate}),
+    });
+    // update in local _allTasks cache
+    const idx=_allTasks.findIndex(t=>t.id===_editingTask.id);
+    if(idx>=0) _allTasks[idx]={..._allTasks[idx], title, topic_name:topicName, category, scope, scope_date:scopeDate};
+    closeEditTask();
+    if(_onEditTaskSaved) await _onEditTaskSaved();
+    else render();
+  }catch(e){ await customAlert('保存失败：'+e.message); }
+}
+
 // ── Wire up modals on load ────────────────────────────
 (function initTaskModals(){
   // task-add overlay close on backdrop
@@ -2206,6 +2473,24 @@ async function submitTaskComplete(){
   });
   document.getElementById('td-cancel').addEventListener('click',closeTaskDone);
   document.getElementById('td-save').addEventListener('click',submitTaskComplete);
+
+  // task-edit overlay
+  document.getElementById('task-edit-overlay').addEventListener('click',function(e){
+    if(e.target===this) closeEditTask();
+  });
+  document.getElementById('te-cancel').addEventListener('click',closeEditTask);
+  document.getElementById('te-save').addEventListener('click',submitEditTask);
+  document.getElementById('te-title').addEventListener('keydown',function(e){
+    if(e.key==='Enter'){e.preventDefault();submitEditTask();}
+  });
+  // category cascade → refresh topic list
+  document.getElementById('te-cat').addEventListener('change',function(){
+    _tePopulateCatTopics(this.value, '');
+  });
+  // scope change → update date input type
+  document.getElementById('te-scope').addEventListener('change',function(){
+    _teUpdateDateInput(this.value, '');
+  });
 })();
 </script>
 </body>

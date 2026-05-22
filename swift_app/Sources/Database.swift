@@ -347,8 +347,18 @@ final class Database {
                       .text(scope), .text(scopeDate), .text(Self.isoNow())])
     }
 
-    func updateTaskTitle(id: Int, title: String) {
-        exec("UPDATE tasks SET title=? WHERE id=?", params: [.text(title), .int(id)])
+    func updateTask(id: Int, title: String?, topicName: String?, category: String?,
+                    scope: String?, scopeDate: String?) {
+        var sets: [String] = []
+        var params: [SQLVal] = []
+        if let v = title      { sets.append("title=?");      params.append(.text(v)) }
+        if let v = topicName  { sets.append("topic_name=?"); params.append(.text(v)) }
+        if let v = category   { sets.append("category=?");   params.append(.text(v)) }
+        if let v = scope      { sets.append("scope=?");      params.append(.text(v)) }
+        if let v = scopeDate  { sets.append("scope_date=?"); params.append(.text(v)) }
+        guard !sets.isEmpty else { return }
+        params.append(.int(id))
+        exec("UPDATE tasks SET \(sets.joined(separator: ",")) WHERE id=?", params: params)
     }
 
     func deleteTask(id: Int) { exec("DELETE FROM tasks WHERE id=?", params: [.int(id)]) }
