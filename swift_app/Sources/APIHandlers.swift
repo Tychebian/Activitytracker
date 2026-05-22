@@ -369,6 +369,54 @@ enum APIHandlers {
         return .text(lines.joined(separator: "\n"))
     }
 
+    // ── /api/tasks ────────────────────────────────────────────
+    static func listTasks(_ r: Req) throws -> APIResponse {
+        let scope    = r.q("scope")
+        let sd       = r.q("scope_date")
+        let topic    = r.q("topic")
+        let doneInt  = r.q("done").flatMap(Int.init)
+        let tasks    = Database.shared.getTasks(scope: scope, scopeDate: sd, topicName: topic, done: doneInt)
+        return try .json(tasks)
+    }
+
+    static func createTask(_ r: Req) throws -> APIResponse {
+        guard let title = r.str("title") else { throw APIError.bad("title required") }
+        let topicName = r.str("topic_name") ?? ""
+        let category  = r.str("category")  ?? ""
+        let scope     = r.str("scope")     ?? "day"
+        let scopeDate = r.str("scope_date") ?? ""
+        guard ["day","week","month"].contains(scope) else { throw APIError.bad("invalid scope") }
+        Database.shared.addTask(title: title, topicName: topicName, category: category,
+                                scope: scope, scopeDate: scopeDate)
+        return try .json(["ok": true, "id": Database.shared.lastInsertRowID])
+    }
+
+    static func updateTask(_ r: Req) throws -> APIResponse {
+        guard let id    = r.ppInt("id")   else { throw APIError.bad("id required") }
+        guard let title = r.str("title")  else { throw APIError.bad("title required") }
+        Database.shared.updateTaskTitle(id: id, title: title)
+        return try .json(["ok": true])
+    }
+
+    static func deleteTask(_ r: Req) throws -> APIResponse {
+        guard let id = r.ppInt("id") else { throw APIError.bad("id required") }
+        Database.shared.deleteTask(id: id)
+        return try .json(["ok": true])
+    }
+
+    static func completeTask(_ r: Req) throws -> APIResponse {
+        guard let id   = r.ppInt("id") else { throw APIError.bad("id required") }
+        guard let task = Database.shared.getTask(id: id) else { throw APIError.notFound("task not found") }
+        let category  = r.str("category")  ?? (task["category"]  as? String ?? "工作")
+        let note      = r.str("note")      ?? (task["title"]      as? String ?? "")
+        let timestamp = r.str("timestamp") ?? Database.isoNow()
+        let endTime   = r.str("end_time")
+        Database.shared.addManual(category: category, note: note, timestamp: timestamp, endTime: endTime)
+        let actId = Database.shared.lastInsertRowID
+        Database.shared.completeTask(id: id, activityId: actId)
+        return try .json(["ok": true, "activity_id": actId])
+    }
+
     // MARK: - Helpers
     // NSNull is kept as-is: JSONSerialization serializes it to JSON null correctly
     private static func nullToNil(_ row: [String: Any]) -> [String: Any] { row }

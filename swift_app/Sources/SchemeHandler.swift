@@ -91,6 +91,11 @@ static let fetchPatchScript = """
         ("PUT",    "/api/focus_topics/{id}",      APIHandlers.updateFocusTopic),
         ("DELETE", "/api/focus_topics/{id}",      APIHandlers.deleteFocusTopic),
         ("GET",    "/api/export",                 APIHandlers.export),
+        ("GET",    "/api/tasks",                  APIHandlers.listTasks),
+        ("POST",   "/api/tasks",                  APIHandlers.createTask),
+        ("PUT",    "/api/tasks/{id}",             APIHandlers.updateTask),
+        ("DELETE", "/api/tasks/{id}",             APIHandlers.deleteTask),
+        ("POST",   "/api/tasks/{id}/complete",    APIHandlers.completeTask),
     ]
 
     private func route(method: String, path: String, query: [String: String], bodyData: Data?) throws -> APIResponse {

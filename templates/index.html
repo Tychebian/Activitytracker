@@ -230,6 +230,53 @@ body::before {
 .act-row:hover .edit-btn { opacity: 1; }
 .edit-btn:hover { background: var(--parch3); }
 
+/* cumulative time box — three aligned columns */
+.cum-box  { display:flex; align-items:center; gap:2px; margin-left:auto; flex-shrink:0; }
+.cum-lbl  { font-size:.6rem; color:var(--gold); font-weight:600; white-space:nowrap; }
+.cum-num  { font-size:.68rem; color:var(--gold); font-weight:700; font-family:monospace;
+            display:inline-block; width:1.8em; text-align:right; }
+.cum-unit { font-size:.62rem; color:var(--gold); font-weight:600;
+            display:inline-block; width:2.4em; }
+
+/* ══════════════════
+   TASK PANEL
+   ══════════════════ */
+.task-section { margin-top:16px; border-top:1.5px dashed var(--border); padding-top:12px; }
+.task-section-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.task-section-title { font-size:.78rem; font-weight:700; color:var(--ink2); letter-spacing:.05em; }
+.task-add-btn { font-size:.74rem; padding:2px 10px; border-radius:4px;
+                border:1px solid var(--gold); color:var(--gold); background:none; cursor:pointer; }
+.task-add-btn:hover { background:var(--glow); }
+.task-item { display:flex; align-items:center; gap:8px; padding:6px 10px;
+             background:var(--parch2); border:1px solid var(--border2);
+             border-left:3px solid var(--gold2); border-radius:0 5px 5px 0; margin:3px 0; }
+.task-check { width:18px; height:18px; border-radius:50%; border:1.5px solid var(--gold);
+              background:none; cursor:pointer; display:flex; align-items:center; justify-content:center;
+              flex-shrink:0; font-size:.6rem; color:var(--gold); padding:0; transition:all .12s; }
+.task-check:hover { background:var(--glow); transform:scale(1.12); }
+.task-title { flex:1; font-size:.84rem; color:var(--ink); }
+.task-meta  { font-size:.68rem; color:var(--ink3); white-space:nowrap; }
+.task-scope-badge { font-size:.6rem; font-weight:700; padding:1px 5px; border-radius:3px;
+                    background:var(--parch3); color:var(--gold); border:1px solid var(--gold2); }
+.task-del-btn { background:none; border:none; color:var(--ink3); cursor:pointer; font-size:.78rem;
+                padding:2px 5px; border-radius:3px; opacity:0; transition:opacity .1s; flex-shrink:0; }
+.task-item:hover .task-del-btn { opacity:1; }
+.task-del-btn:hover { color:#a02808; background:#fde8e0; }
+.task-empty { color:var(--ink3); font-size:.75rem; padding:6px 0 2px; text-align:center; }
+/* scope selector buttons */
+.scope-btn { padding:3px 12px; border-radius:4px; border:1.5px solid var(--border);
+             background:none; font-size:.76rem; font-weight:700; cursor:pointer;
+             color:var(--ink3); transition:all .12s; }
+.scope-btn:hover { border-color:var(--gold); color:var(--gold); }
+.scope-btn.active { background:var(--gold); border-color:var(--gold); color:#fff; }
+/* tasks under topic in settings */
+.topic-task-row { display:flex; align-items:center; gap:6px;
+                  padding:3px 0 3px 28px; border-top:1px dotted var(--border2); }
+.topic-task-title { flex:1; font-size:.76rem; color:var(--ink2); }
+.topic-task-del { background:none; border:none; color:var(--ink3); cursor:pointer;
+                  font-size:.72rem; padding:1px 4px; border-radius:3px; }
+.topic-task-del:hover { color:#a02808; }
+
 /* ══════════════════
    WEEK DAY CARDS
    ══════════════════ */
@@ -559,6 +606,8 @@ body::before {
 
 <!-- main content -->
 <div id="content"></div>
+<!-- task panel (appended below main content in day/week/month views) -->
+<div id="task-panel"></div>
 
 <!-- settings pane (hidden by default) -->
 <div id="settings-pane" style="display:none">
@@ -755,6 +804,66 @@ body::before {
   </div>
 </div>
 
+<!-- ═══════════════════════════════
+     ADD TASK MODAL
+     ═══════════════════════════════ -->
+<div id="task-add-overlay" class="overlay">
+  <div class="mbox" style="width:440px">
+    <div class="mbox-title">📋 新建任务</div>
+    <label style="font-size:.72rem;color:var(--ink3);letter-spacing:.06em;display:block;margin-bottom:4px">任务标题</label>
+    <input id="ta-title" class="m-input" type="text" placeholder="任务名称…" style="margin:0 0 14px"/>
+    <label style="font-size:.72rem;color:var(--ink3);letter-spacing:.06em;display:block;margin-bottom:4px">所属主题（可选）</label>
+    <select id="ta-topic" class="m-input" style="margin:0 0 14px"></select>
+    <label style="font-size:.72rem;color:var(--ink3);letter-spacing:.06em;display:block;margin-bottom:6px">时间范围</label>
+    <div id="ta-scope-group" style="display:flex;gap:8px;margin-bottom:18px">
+      <button class="scope-btn active" data-scope="day">按日</button>
+      <button class="scope-btn" data-scope="week">按周</button>
+      <button class="scope-btn" data-scope="month">按月</button>
+    </div>
+    <div class="m-btn-row">
+      <div style="flex:1"></div>
+      <button class="btn-cancel" id="ta-cancel">取消</button>
+      <button class="btn-save" id="ta-save">✓ 创建</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     TASK COMPLETE MODAL
+     ═══════════════════════════════ -->
+<div id="task-done-overlay" class="overlay">
+  <div class="mbox" style="width:460px">
+    <div class="mbox-title">✓ 完成任务 · 记录时间</div>
+    <div id="td-task-info" style="margin-bottom:14px;font-size:.85rem;color:var(--crimson);font-weight:700"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:6px">
+      <div>
+        <label style="font-size:.72rem;color:var(--ink3);letter-spacing:.06em;display:block;margin-bottom:4px">开始时间</label>
+        <div style="display:flex;gap:5px;align-items:center">
+          <select id="td-sh" class="m-input" style="margin:0;flex:1;padding:6px 4px" onchange="calcTdDur()"></select>
+          <span style="color:var(--ink3);font-weight:700">:</span>
+          <select id="td-sm" class="m-input" style="margin:0;width:58px;padding:6px 4px" onchange="calcTdDur()"></select>
+        </div>
+      </div>
+      <div>
+        <label style="font-size:.72rem;color:var(--ink3);letter-spacing:.06em;display:block;margin-bottom:4px">结束时间</label>
+        <div style="display:flex;gap:5px;align-items:center">
+          <select id="td-eh" class="m-input" style="margin:0;flex:1;padding:6px 4px" onchange="calcTdDur()"></select>
+          <span style="color:var(--ink3);font-weight:700">:</span>
+          <select id="td-em" class="m-input" style="margin:0;width:58px;padding:6px 4px" onchange="calcTdDur()"></select>
+        </div>
+      </div>
+    </div>
+    <div id="td-duration" style="font-size:.78rem;color:var(--ink3);text-align:right;min-height:18px;margin-bottom:12px"></div>
+    <label style="font-size:.72rem;color:var(--ink3);letter-spacing:.06em;display:block;margin-bottom:4px">备注（可修改）</label>
+    <input id="td-note" class="m-input" type="text" style="margin:0 0 14px"/>
+    <div class="m-btn-row">
+      <div style="flex:1"></div>
+      <button class="btn-cancel" id="td-cancel">取消</button>
+      <button class="btn-save" id="td-save">✓ 确认完成</button>
+    </div>
+  </div>
+</div>
+
 <!-- color picker -->
 <div id="cpicker"></div>
 
@@ -784,6 +893,9 @@ let CATS=[], COLORS={}, IV=20, AUTO_POPUP=true, TOPIC_PRIORITIES={};
 let view='day', cur=today();
 let editId=null, editCat=null, editTimestamp=null;
 let cpTarget=null, cpOldName=null, newCatColor='#c8320a';
+let _allTasks=[];
+let _completingTask=null;  // {id, category, title, scope_date}
+let _addTaskScope='day', _addTaskScopeDate='';
 
 const PALETTE=[
   "#c8320a","#1a5fa3","#6b1a8a","#b07a10","#c83264",
@@ -812,6 +924,54 @@ async function api(url,opts){
 function cc(cat){return COLORS[cat]||'#c8960a';}
 function fmtDur(mins){if(!mins||mins<=0)return '—';if(mins<60)return mins+'分钟';const h=Math.floor(mins/60),r=mins%60;return r?`${h}小时${r}分钟`:`${h}小时`;}
 function fmtDurEn(mins){if(!mins||mins<=0)return '—';if(mins<60)return mins+'min';const h=Math.floor(mins/60),r=mins%60;return r?`${h}h${r}m`:`${h}h`;}
+function fmtDurParts(mins){if(!mins||mins<=0)return {num:'-',unit:''};if(mins<60)return {num:String(mins),unit:'min'};const h=Math.floor(mins/60),r=mins%60;return r?{num:String(h),unit:`h${r}m`}:{num:String(h),unit:'h'};}
+// Task scope-date helpers
+function taskScopeDate(scope,d){
+  d=d||cur;
+  if(scope==='day') return fd(d);
+  if(scope==='week'){const dd=new Date(d),dow=dd.getDay();dd.setDate(dd.getDate()-(dow===0?6:dow-1));dd.setHours(0,0,0,0);return fd(dd);}
+  return `${d.getFullYear()}-${p2(d.getMonth()+1)}`;
+}
+function scopeLabel(s){return s==='day'?'日':s==='week'?'周':'月';}
+
+// Build & inject task section into a container element
+async function renderTaskSection(containerEl,scope,scopeDate){
+  const tasks=await api(`/api/tasks?scope=${scope}&scope_date=${encodeURIComponent(scopeDate)}&done=0`);
+  const label=scope==='day'?'今日任务':scope==='week'?'本周任务':'本月任务';
+  const taskRows=tasks.map(t=>`
+    <div class="task-item" data-tid="${t.id}">
+      <button class="task-check" data-tid="${t.id}" data-cat="${esc(t.category||'')}"
+              data-topic="${esc(t.topic_name||'')}" data-title="${esc(t.title)}"
+              data-sd="${esc(scopeDate)}" title="标记完成">○</button>
+      <span class="task-title">${esc(t.title)}</span>
+      ${t.topic_name?`<span class="task-meta">${esc(t.topic_name)}</span>`:''}
+      <button class="task-del-btn" data-tid="${t.id}">✕</button>
+    </div>`).join('');
+
+  containerEl.innerHTML=`<div class="task-section">
+    <div class="task-section-hdr">
+      <span class="task-section-title">📋 ${label}</span>
+      <button class="task-add-btn" id="task-add-btn-${scope}">＋ 添加</button>
+    </div>
+    ${taskRows||`<div class="task-empty">暂无${label.replace('任务','')}任务</div>`}
+  </div>`;
+
+  // attach listeners
+  containerEl.querySelector(`#task-add-btn-${scope}`)
+    ?.addEventListener('click',()=>openAddTask(scope,scopeDate));
+  containerEl.querySelectorAll('.task-check').forEach(btn=>{
+    btn.addEventListener('click',e=>{
+      const b=e.currentTarget;
+      openTaskComplete(+b.dataset.tid,b.dataset.cat,b.dataset.topic,b.dataset.title,b.dataset.sd);
+    });
+  });
+  containerEl.querySelectorAll('.task-del-btn').forEach(btn=>{
+    btn.addEventListener('click',e=>{
+      const tid=+e.currentTarget.dataset.tid;
+      deleteTaskItem(tid,containerEl,scope,scopeDate);
+    });
+  });
+}
 function actDur(a){
   if(a.end_time){const m=Math.round((new Date(a.end_time)-new Date(a.timestamp))/60000);return Math.max(1,m);}
   return IV;
@@ -882,6 +1042,9 @@ function setView(v){
   });
   document.getElementById('content').style.display=isSets?'none':'';
   document.getElementById('settings-pane').style.display=isSets?'block':'none';
+  // task-panel visible only for day/week/month
+  const tp=document.getElementById('task-panel');
+  if(tp){ tp.style.display=(isSets||isTopic)?'none':''; if(isSets||isTopic) tp.innerHTML=''; }
   if(isSets){ renderSTab1(); renderCatsTopics(); }
   else render();
 }
@@ -1003,10 +1166,8 @@ async function renderDay(){
       const estimated=!a.end_time;
       const endISO=calcEndISO(a);
       const endLabel=fmtT(endISO);
-      const isLast=noteLastIdx[a.note]===i;
-      const cumHtml=isLast
-        ?`<span style="font-size:.68rem;color:var(--gold);font-weight:700;white-space:nowrap;margin-left:auto">累计 ${fmtDurEn(noteCum[a.note])}</span>`
-        :`<span style="margin-left:auto"></span>`;
+      const {num,unit}=fmtDurParts(noteCum[a.note]);
+      const cumHtml=`<span class="cum-box"><span class="cum-lbl">累计</span><span class="cum-num">${num}</span><span class="cum-unit">${unit}</span></span>`;
       return`<div class="act-row" style="border-left-color:${c}"
                onclick="openEdit(${a.id},'${sc}','${sn}','${ts}','${et}')">
         <div class="act-row-main">
@@ -1027,6 +1188,8 @@ async function renderDay(){
           onkeydown="if(event.key==='Enter'){this.blur();event.preventDefault();}"/>
       </div>`;
     }).join('')}</div>`;
+  // task panel
+  await renderTaskSection(document.getElementById('task-panel'),'day',fd(cur));
 }
 
 /* ═══════════════════════════════
@@ -1092,6 +1255,8 @@ async function renderWeek(){
     </div>`;
   }
   document.getElementById('content').innerHTML=html;
+  // task panel — show tasks for the current week (Monday-based)
+  await renderTaskSection(document.getElementById('task-panel'),'week',taskScopeDate('week',cur));
 }
 
 /* ═══════════════════════════════
@@ -1150,6 +1315,9 @@ async function renderMonth(){
   </div>`;
 
   document.getElementById('content').innerHTML=calHtml;
+  // task panel
+  const monthKey=`${cur.getFullYear()}-${p2(cur.getMonth()+1)}`;
+  await renderTaskSection(document.getElementById('task-panel'),'month',monthKey);
 }
 
 function drillDay(ds){cur=new Date(ds+'T00:00:00');setView('day');}
@@ -1344,7 +1512,9 @@ let _selectedCat=null;
 let _allCats=[], _allTopics=[];
 
 async function renderCatsTopics(){
-  [_allCats,_allTopics]=await Promise.all([api('/api/categories'),api('/api/focus_topics')]);
+  [_allCats,_allTopics,_allTasks]=await Promise.all([
+    api('/api/categories'),api('/api/focus_topics'),api('/api/tasks?done=0')
+  ]);
   _renderCatList();
   _renderTopicsPanel();
 }
@@ -1439,6 +1609,26 @@ function _renderTopicsPanel(){
     const opts=(_selectedCat===''?_allCats:otherCats).map(c=>`<option value="${esc(c.name||c)}">${esc(c.name||c)}</option>`).join('');
     const prio=t.priority||'中';
     const prioButtons=['高','中','低'].map(p=>`<button class="prio-btn${prio===p?' active-'+p:''}" data-tid="${t.id}" data-prio="${p}">${p}</button>`).join('');
+    // tasks under this topic
+    const topicTasks=_allTasks.filter(tk=>tk.topic_name===t.name);
+    const taskHtml=topicTasks.map(tk=>`
+      <div class="topic-task-row" data-task-id="${tk.id}">
+        <span class="task-scope-badge">${scopeLabel(tk.scope)}</span>
+        <span class="topic-task-title">${esc(tk.title)}</span>
+        <span style="font-size:.62rem;color:var(--ink3)">${tk.scope_date||''}</span>
+        <button class="topic-task-del" data-task-id="${tk.id}" title="删除任务">✕</button>
+      </div>`).join('');
+    const addTaskRow=`<div class="topic-task-row" style="gap:5px">
+      <input class="m-input topic-task-input" type="text" placeholder="新建任务…"
+             style="flex:1;margin:0;font-size:.74rem;padding:3px 7px"
+             data-topic="${tn}" data-cat="${sn}"/>
+      <select class="topic-task-scope" style="font-size:.72rem;padding:3px 5px;border:1px solid var(--border);border-radius:4px;background:var(--parch3);color:var(--ink3)">
+        <option value="day">按日</option>
+        <option value="week">按周</option>
+        <option value="month">按月</option>
+      </select>
+      <button class="topic-task-add-btn btn-add" style="padding:3px 9px;font-size:.72rem">+</button>
+    </div>`;
     return`<div class="topic-row" style="flex-wrap:wrap;gap:4px">
       <input class="topic-name" value="${tn}" data-id="${t.id}" data-orig="${tn}"/>
       <div style="display:flex;gap:3px;flex-shrink:0">${prioButtons}</div>
@@ -1447,6 +1637,7 @@ function _renderTopicsPanel(){
         <option value="">迁移到…</option>${opts}
       </select>
       <button class="topic-del" data-tid="${t.id}" data-tname="${tn}">✕</button>
+      ${taskHtml}${addTaskRow}
     </div>`;
   }).join('');
 
@@ -1491,6 +1682,30 @@ function _renderTopicsPanel(){
     if(delBtn) delBtn.addEventListener('click', function(){
       deleteTopic(parseInt(this.dataset.tid), this.dataset.tname);
     });
+    // task rows under topic
+    row.querySelectorAll('.topic-task-del').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        deleteTaskItem(+this.dataset.taskId, null, null, null, true);
+      });
+    });
+    var taskAddBtn=row.querySelector('.topic-task-add-btn');
+    if(taskAddBtn){
+      taskAddBtn.addEventListener('click', function(){
+        var inp=row.querySelector('.topic-task-input');
+        var scopeSel=row.querySelector('.topic-task-scope');
+        _addTaskFromSettings(inp, scopeSel);
+      });
+    }
+    var taskInput=row.querySelector('.topic-task-input');
+    if(taskInput){
+      taskInput.addEventListener('keydown', function(e){
+        if(e.key==='Enter'){
+          e.preventDefault();
+          var scopeSel=row.querySelector('.topic-task-scope');
+          _addTaskFromSettings(this, scopeSel);
+        }
+      });
+    }
   });
 
   // 添加主题按钮
@@ -1833,6 +2048,164 @@ async function render(){
 (async()=>{
   await loadMeta();
   setView('day');
+})();
+
+/* ═══════════════════════════════
+   TASKS — CRUD & MODALS
+   ═══════════════════════════════ */
+
+// ── Add task from settings panel ──────────────────────
+async function _addTaskFromSettings(inputEl, scopeEl){
+  const title=(inputEl.value||'').trim();
+  const topicName=inputEl.dataset.topic||'';
+  const category=inputEl.dataset.cat||'';
+  const scope=scopeEl?scopeEl.value:'day';
+  const scopeDate=taskScopeDate(scope, new Date());
+  if(!title) return;
+  try{
+    await api('/api/tasks',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({title,topic_name:topicName,category,scope,scope_date:scopeDate})});
+    inputEl.value='';
+    inputEl.style.outline='2px solid #2a8a50';
+    setTimeout(()=>{inputEl.style.outline='';},1200);
+    await renderCatsTopics();
+  }catch(e){ await customAlert('添加失败：'+e.message); }
+}
+
+// ── Delete task item ──────────────────────────────────
+async function deleteTaskItem(tid, containerEl, scope, scopeDate, fromSettings){
+  if(!await customConfirm('删除该任务？','删除'))return;
+  await api(`/api/tasks/${tid}`,{method:'DELETE'});
+  if(fromSettings){
+    await renderCatsTopics();
+  } else if(containerEl && scope && scopeDate){
+    await renderTaskSection(containerEl, scope, scopeDate);
+  } else {
+    render();
+  }
+}
+
+// ── Open "add task" modal from dashboard ─────────────
+function openAddTask(scope, scopeDate){
+  _addTaskScope=scope;
+  _addTaskScopeDate=scopeDate;
+  // Update scope buttons
+  document.querySelectorAll('#ta-scope-group .scope-btn').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.scope===scope);
+  });
+  // Populate topic selector
+  const sel=document.getElementById('ta-topic');
+  sel.innerHTML='<option value="">-- 不关联主题 --</option>'+
+    (_allTopics||[]).map(t=>`<option value="${esc(t.name)}" data-cat="${esc(t.category||'')}">${esc(t.category||'未分类')} / ${esc(t.name)}</option>`).join('');
+  document.getElementById('ta-title').value='';
+  document.getElementById('task-add-overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('ta-title').focus(),80);
+}
+
+function closeAddTask(){
+  document.getElementById('task-add-overlay').classList.remove('open');
+}
+
+async function submitAddTask(){
+  const title=(document.getElementById('ta-title').value||'').trim();
+  if(!title){await customAlert('请输入任务标题');return;}
+  const sel=document.getElementById('ta-topic');
+  const topicName=sel.value||'';
+  const category=topicName?(sel.selectedOptions[0]?.dataset.cat||''):'';
+  try{
+    await api('/api/tasks',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({title,topic_name:topicName,category,scope:_addTaskScope,scope_date:_addTaskScopeDate})});
+    closeAddTask();
+    render();
+  }catch(e){ await customAlert('添加失败：'+e.message); }
+}
+
+// ── Open "complete task" modal ────────────────────────
+function openTaskComplete(tid, category, topic, title, scopeDate){
+  _completingTask={id:tid, category, topic, title, scope_date:scopeDate};
+  document.getElementById('td-task-info').textContent=`「${title}」${topic?'（'+topic+'）':''}`;
+  document.getElementById('td-note').value=title;
+
+  const now=new Date();
+  const h=now.getHours(), m=Math.floor(now.getMinutes()/5)*5;
+  const endM=(m+IV)%60, endH=h+Math.floor((m+IV)/60);
+
+  ['td-sh','td-eh'].forEach((id,i)=>{
+    const eh=i===0?h:endH%24;
+    document.getElementById(id).innerHTML=
+      Array.from({length:24},(_,j)=>`<option value="${j}"${j===eh?' selected':''}>${p2(j)}</option>`).join('');
+  });
+  ['td-sm','td-em'].forEach((id,i)=>{
+    const em=i===0?m:endM;
+    document.getElementById(id).innerHTML=
+      [0,5,10,15,20,25,30,35,40,45,50,55].map(v=>`<option value="${v}"${v===em?' selected':''}>${p2(v)}</option>`).join('');
+  });
+  calcTdDur();
+  document.getElementById('task-done-overlay').classList.add('open');
+}
+
+function calcTdDur(){
+  const sh=parseInt(document.getElementById('td-sh').value)||0;
+  const sm=parseInt(document.getElementById('td-sm').value)||0;
+  const eh=parseInt(document.getElementById('td-eh').value)||0;
+  const em=parseInt(document.getElementById('td-em').value)||0;
+  let mins=(eh*60+em)-(sh*60+sm);
+  if(mins<0)mins+=24*60;
+  document.getElementById('td-duration').textContent=mins>0?`时长：${fmtDur(mins)}`:'';
+}
+
+function closeTaskDone(){
+  document.getElementById('task-done-overlay').classList.remove('open');
+}
+
+async function submitTaskComplete(){
+  if(!_completingTask)return;
+  const {id,category}=_completingTask;
+  const note=document.getElementById('td-note').value.trim()||_completingTask.title;
+  const todayStr=fd(new Date());
+  const sh=p2(parseInt(document.getElementById('td-sh').value)||0);
+  const sm=p2(parseInt(document.getElementById('td-sm').value)||0);
+  const eh=p2(parseInt(document.getElementById('td-eh').value)||0);
+  const em=p2(parseInt(document.getElementById('td-em').value)||0);
+  const timestamp=`${todayStr}T${sh}:${sm}:00`;
+  const end_time=`${todayStr}T${eh}:${em}:00`;
+  try{
+    await api(`/api/tasks/${id}/complete`,{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({category,note,timestamp,end_time})});
+    closeTaskDone();
+    render();
+  }catch(e){ await customAlert('操作失败：'+e.message); }
+}
+
+// ── Wire up modals on load ────────────────────────────
+(function initTaskModals(){
+  // task-add overlay close on backdrop
+  document.getElementById('task-add-overlay').addEventListener('click',function(e){
+    if(e.target===this) closeAddTask();
+  });
+  document.getElementById('ta-cancel').addEventListener('click',closeAddTask);
+  document.getElementById('ta-save').addEventListener('click',submitAddTask);
+  document.getElementById('ta-title').addEventListener('keydown',function(e){
+    if(e.key==='Enter'){e.preventDefault();submitAddTask();}
+  });
+  // scope buttons
+  document.querySelectorAll('#ta-scope-group .scope-btn').forEach(btn=>{
+    btn.addEventListener('click',function(){
+      document.querySelectorAll('#ta-scope-group .scope-btn').forEach(b=>b.classList.remove('active'));
+      this.classList.add('active');
+      _addTaskScope=this.dataset.scope;
+    });
+  });
+
+  // task-done overlay
+  document.getElementById('task-done-overlay').addEventListener('click',function(e){
+    if(e.target===this) closeTaskDone();
+  });
+  document.getElementById('td-cancel').addEventListener('click',closeTaskDone);
+  document.getElementById('td-save').addEventListener('click',submitTaskComplete);
 })();
 </script>
 </body>

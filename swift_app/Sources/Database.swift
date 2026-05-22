@@ -65,6 +65,21 @@ final class Database {
         // julianday() arithmetic stays consistent with Python-written local-time values.
         exec("UPDATE activities SET timestamp=datetime(timestamp,'localtime') WHERE timestamp LIKE '%Z'")
         exec("UPDATE activities SET end_time=datetime(end_time,'localtime') WHERE end_time LIKE '%Z'")
+
+        exec("""
+            CREATE TABLE IF NOT EXISTS tasks (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                title       TEXT NOT NULL,
+                topic_name  TEXT NOT NULL DEFAULT '',
+                category    TEXT NOT NULL DEFAULT '',
+                scope       TEXT NOT NULL DEFAULT 'day',
+                scope_date  TEXT NOT NULL DEFAULT '',
+                created_at  TEXT NOT NULL,
+                done        INTEGER NOT NULL DEFAULT 0,
+                done_at     TEXT,
+                activity_id INTEGER
+            )
+        """)
     }
 
     private func columnNames(table: String) -> Set<String> {
@@ -308,4 +323,38 @@ final class Database {
     }
 
     func deleteFocusTopic(id: Int) { exec("DELETE FROM focus_topics WHERE id=?", params: [.int(id)]) }
+
+    // MARK: - Tasks
+
+    func getTasks(scope: String?, scopeDate: String?, topicName: String?, done: Int?) -> [[String: Any]] {
+        var conds = ["1=1"]
+        var params: [SQLVal] = []
+        if let s = scope      { conds.append("scope=?");       params.append(.text(s)) }
+        if let sd = scopeDate { conds.append("scope_date=?");  params.append(.text(sd)) }
+        if let tn = topicName { conds.append("topic_name=?");  params.append(.text(tn)) }
+        if let d  = done      { conds.append("done=?");        params.append(.int(d)) }
+        return query("SELECT * FROM tasks WHERE \(conds.joined(separator:" AND ")) ORDER BY created_at DESC",
+                     params: params)
+    }
+
+    func getTask(id: Int) -> [String: Any]? {
+        query("SELECT * FROM tasks WHERE id=?", params: [.int(id)]).first
+    }
+
+    func addTask(title: String, topicName: String, category: String, scope: String, scopeDate: String) {
+        exec("INSERT INTO tasks (title,topic_name,category,scope,scope_date,created_at) VALUES (?,?,?,?,?,?)",
+             params: [.text(title), .text(topicName), .text(category),
+                      .text(scope), .text(scopeDate), .text(Self.isoNow())])
+    }
+
+    func updateTaskTitle(id: Int, title: String) {
+        exec("UPDATE tasks SET title=? WHERE id=?", params: [.text(title), .int(id)])
+    }
+
+    func deleteTask(id: Int) { exec("DELETE FROM tasks WHERE id=?", params: [.int(id)]) }
+
+    func completeTask(id: Int, activityId: Int64) {
+        exec("UPDATE tasks SET done=1,done_at=?,activity_id=? WHERE id=?",
+             params: [.text(Self.isoNow()), .int64(activityId), .int(id)])
+    }
 }
