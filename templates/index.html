@@ -10,6 +10,8 @@
    Parchment · Crimson · Purple · Gold
    ═══════════════════════════════════════════════════════ */
 :root {
+  --font-sans: -apple-system, "PingFang SC", "Hiragino Sans GB", "Hiragino Sans", sans-serif;
+  --font-mono: "SF Mono", "Menlo", monospace;
   --parch:    #f8f0df;   /* aged parchment */
   --parch2:   #f0e4c8;
   --parch3:   #e8d8b4;
@@ -31,7 +33,7 @@
 body {
   background: var(--parch);
   color: var(--ink);
-  font-family: -apple-system, "Hiragino Sans", "Yu Gothic", sans-serif;
+  font-family: var(--font-sans);
   min-height: 100vh;
 }
 
@@ -211,7 +213,7 @@ body::before {
 }
 .act-row:hover { background: var(--parch3); }
 .act-row-main { display: flex; align-items: center; gap: 8px; }
-.act-time { font-family: monospace; font-size: .76rem; color: var(--ink3);
+.act-time { font-family: var(--font-mono); font-size: .76rem; color: var(--ink3);
             width: 40px; flex-shrink: 0; white-space: nowrap; }
 .cat-pill {
   font-size: .66rem; font-weight: 700; padding: 2px 7px;
@@ -230,13 +232,9 @@ body::before {
 .act-row:hover .edit-btn { opacity: 1; }
 .edit-btn:hover { background: var(--parch3); }
 
-/* cumulative time box — three aligned columns */
-.cum-box  { display:flex; align-items:center; gap:2px; margin-left:auto; flex-shrink:0; }
-.cum-lbl  { font-size:.6rem; color:var(--gold); font-weight:600; white-space:nowrap; }
-.cum-num  { font-size:.68rem; color:var(--gold); font-weight:700; font-family:monospace;
-            display:inline-block; width:1.8em; text-align:right; }
-.cum-unit { font-size:.62rem; color:var(--gold); font-weight:600;
-            display:inline-block; width:2.4em; }
+/* individual duration badge on each activity row */
+.act-dur { font-family:var(--font-mono); font-size:.7rem; color:var(--ink3);
+           margin-left:auto; flex-shrink:0; white-space:nowrap; }
 
 /* ══════════════════
    TASK PANEL
@@ -503,10 +501,54 @@ body::before {
   padding: 4px 0 0 0; margin-top: 4px;
   border-top: 1px dashed var(--border2);
   outline: none; font-family: inherit; cursor: text;
+  resize: none; overflow: hidden; display: block;
+  line-height: 1.5;
 }
 .act-detail-input::placeholder { color: var(--ink3); opacity: .45; font-style: italic; }
 .act-detail-input:focus { border-top-color: var(--gold); color: var(--ink); }
 .act-detail-input.saved { border-top-color: var(--gold); color: var(--ink); transition: border-top-color .4s; }
+
+/* 三件最重要的事 panel */
+.goals-panel {
+  margin-bottom: 14px; padding: 12px 14px; border-radius: 10px;
+  background: color-mix(in srgb, var(--gold) 8%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--gold) 22%, transparent);
+}
+.goals-panel-title {
+  font-size: .72rem; font-weight: 700; letter-spacing: .06em;
+  color: var(--gold); margin-bottom: 9px; display: flex; align-items: center; gap: 8px;
+}
+.goal-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.goal-row:last-child { margin-bottom: 0; }
+.goal-num { font-size: .7rem; font-weight: 700; color: var(--gold); width: 14px; flex-shrink: 0; text-align: center; }
+.goal-input {
+  flex: 1; border: none; background: transparent; font-family: var(--font-sans);
+  font-size: .8rem; color: var(--ink); outline: none; padding: 3px 0;
+  border-bottom: 1px solid var(--border2);
+}
+.goal-input:focus { border-bottom-color: var(--gold); }
+.goal-input::placeholder { color: var(--ink3); opacity: .5; font-style: italic; }
+.goal-input[readonly] { color: var(--ink2); border-bottom-color: transparent; cursor: default; }
+/* 主题归档区 */
+.archive-section { margin-top: 20px; padding-top: 14px; border-top: 1.5px dashed var(--border); }
+.archive-section-title {
+  font-size: .72rem; font-weight: 700; letter-spacing: .06em;
+  color: var(--ink3); margin-bottom: 10px; cursor: pointer; display: flex; align-items: center; gap: 6px;
+}
+.archive-topic-row {
+  display: flex; align-items: center; gap: 8px; padding: 6px 0;
+  border-bottom: 1px dashed var(--border2); font-size: .8rem;
+}
+/* 人生时间轴归档 */
+.life-archive-group { margin-bottom: 22px; }
+.life-archive-group-title { font-size: .72rem; font-weight: 700; letter-spacing: .06em; color: var(--ink3); margin-bottom: 8px; }
+.life-archive-entry {
+  padding: 10px 12px; border-radius: 8px; background: var(--card);
+  border: 1px solid var(--border); margin-bottom: 8px;
+}
+.life-archive-key { font-size: .72rem; font-weight: 700; color: var(--ink2); margin-bottom: 6px; }
+.life-archive-goal { font-size: .8rem; color: var(--ink); margin-bottom: 3px; display: flex; gap: 8px; }
+.life-archive-goal-num { font-weight: 700; color: var(--gold); width: 14px; flex-shrink: 0; }
 
 /* 优先级徽章 */
 .prio-badge {
@@ -596,6 +638,7 @@ body::before {
     <button class="tab" id="tab-week"     onclick="setView('week')">按周</button>
     <button class="tab" id="tab-month"    onclick="setView('month')">按月</button>
     <button class="tab" id="tab-topic"    onclick="setView('topic')">按主题</button>
+    <button class="tab" id="tab-tasks"    onclick="setView('tasks')">按任务</button>
     <button class="tab" id="tab-settings" onclick="setView('settings')">⚙ 设置</button>
   </div>
 </div>
@@ -625,10 +668,38 @@ body::before {
 <!-- category summary -->
 <div class="cat-row" id="cat-summary"></div>
 
+<!-- 三件最重要的事 -->
+<div id="goals-panel"></div>
+
 <!-- main content -->
 <div id="content"></div>
 <!-- task panel (appended below main content in day/week/month views) -->
 <div id="task-panel"></div>
+
+<!-- tasks view pane (hidden by default) -->
+<div id="tasks-pane" style="display:none">
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+    <select id="tv-filter-cat" class="m-input" style="margin:0;flex:1;max-width:150px">
+      <option value="">全部分类</option>
+    </select>
+    <select id="tv-filter-topic" class="m-input" style="margin:0;flex:1;max-width:150px">
+      <option value="">全部主题</option>
+    </select>
+    <select id="tv-filter-scope" class="m-input" style="margin:0;max-width:120px">
+      <option value="">全部范围</option>
+      <option value="day">按日</option>
+      <option value="week">按周</option>
+      <option value="month">按月</option>
+    </select>
+    <select id="tv-filter-done" class="m-input" style="margin:0;max-width:120px">
+      <option value="0">待完成</option>
+      <option value="1">已完成</option>
+      <option value="">全部</option>
+    </select>
+    <button class="btn-add" id="tv-add-btn" style="padding:5px 14px;font-size:.8rem;white-space:nowrap">＋ 新建任务</button>
+  </div>
+  <div id="tv-tasks-list"></div>
+</div>
 
 <!-- settings pane (hidden by default) -->
 <div id="settings-pane" style="display:none">
@@ -640,6 +711,7 @@ body::before {
     <button class="stab"    id="stab-topics" onclick="switchSTab('topics')">🎯 主题设置</button>
     <button class="stab"    id="stab-tasks"  onclick="switchSTab('tasks')">📋 任务设置</button>
     <button class="stab"    id="stab-export" onclick="switchSTab('export')">📤 一键导出</button>
+    <button class="stab"    id="stab-life"   onclick="switchSTab('life')">🌿 人生时间轴</button>
   </div>
 
   <!-- Tab 1: 计时设置 -->
@@ -704,48 +776,32 @@ body::before {
   </div>
 
   <!-- Tab 4: 任务设置 -->
-  <div id="stab-tasks-pane" class="settings-panel" style="display:none;max-width:660px">
-    <div class="section-title" style="margin-bottom:14px">任务管理</div>
-    <!-- 过滤行：分类 + 主题 + 范围（均可选） -->
-    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
-      <select id="task-filter-cat" class="m-input" style="margin:0;flex:1;max-width:150px">
-        <option value="">全部分类</option>
+  <div id="stab-tasks-pane" class="settings-panel" style="display:none;max-width:560px">
+    <div class="section-title" style="margin-bottom:14px">新建任务</div>
+    <div style="font-size:.72rem;color:var(--ink3);margin-bottom:12px;letter-spacing:.04em">
+      <span style="color:var(--crimson)">* 分类和主题必选</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <select id="task-new-cat" class="m-input" style="margin:0">
+        <option value="">* 选择分类</option>
       </select>
-      <select id="task-filter-topic" class="m-input" style="margin:0;flex:1;max-width:150px">
-        <option value="">全部主题</option>
+      <select id="task-new-topic" class="m-input" style="margin:0" disabled>
+        <option value="">* 先选分类</option>
       </select>
-      <select id="task-filter-scope" class="m-input" style="margin:0;max-width:120px">
-        <option value="">全部范围</option>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <input id="task-new-title" class="m-input" type="text" placeholder="任务名称（必填）"
+             style="margin:0;flex:1;min-width:140px;padding:6px 10px"/>
+      <select id="task-new-scope" class="m-input" style="margin:0;max-width:90px">
         <option value="day">按日</option>
         <option value="week">按周</option>
         <option value="month">按月</option>
       </select>
+      <button class="btn-add" style="padding:6px 14px;white-space:nowrap" id="task-new-add-btn">+ 添加</button>
     </div>
-    <div id="tasks-settings-list"></div>
-    <!-- 新建任务：分类和主题必选 -->
-    <div style="margin-top:16px;padding-top:14px;border-top:1px dashed var(--border)">
-      <div style="font-size:.72rem;color:var(--ink3);margin-bottom:8px;letter-spacing:.04em">
-        新建任务 <span style="color:var(--crimson)">*分类和主题必选</span>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-        <select id="task-new-cat" class="m-input" style="margin:0">
-          <option value="">* 选择分类</option>
-        </select>
-        <select id="task-new-topic" class="m-input" style="margin:0" disabled>
-          <option value="">* 先选分类</option>
-        </select>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <input id="task-new-title" class="m-input" type="text" placeholder="任务名称（必填）"
-               style="margin:0;flex:1;min-width:140px;padding:6px 10px"/>
-        <select id="task-new-scope" class="m-input" style="margin:0;max-width:90px">
-          <option value="day">按日</option>
-          <option value="week">按周</option>
-          <option value="month">按月</option>
-        </select>
-        <button class="btn-add" style="padding:6px 14px;white-space:nowrap" id="task-new-add-btn">+ 添加</button>
-      </div>
-    </div>
+    <p style="color:var(--ink3);font-size:.68rem;margin-top:12px;line-height:1.6">
+      任务添加后，可在 Dashboard「按任务」视图中查看、编辑和管理全部任务。
+    </p>
   </div>
 
   <!-- Tab 5: 导出 -->
@@ -772,11 +828,20 @@ body::before {
         <button class="btn-save" style="padding:5px 14px;font-size:.78rem" onclick="copyExport()">📋 复制全文</button>
       </div>
       <textarea id="export-text" readonly
-        style="width:100%;height:280px;font-size:.72rem;font-family:monospace;
+        style="width:100%;height:280px;font-size:.72rem;font-family:var(--font-mono);
                background:var(--parch3);border:1px solid var(--border);border-radius:6px;
                padding:10px;color:var(--ink);resize:vertical;box-sizing:border-box;line-height:1.5">
       </textarea>
     </div>
+  </div>
+
+  <!-- Tab: 人生时间轴归档 -->
+  <div id="stab-life-pane" class="settings-panel" style="display:none;max-width:620px">
+    <div class="section-title" style="margin-bottom:14px">🌿 人生时间轴归档</div>
+    <div style="font-size:.75rem;color:var(--ink2);margin-bottom:16px;line-height:1.6">
+      每个周期结束后留存的「三件最重要的事」在此永久记录。
+    </div>
+    <div id="life-archive-content"><div style="color:var(--ink3);font-size:.78rem">加载中…</div></div>
   </div>
 
 </div>
@@ -786,7 +851,7 @@ body::before {
 <!-- ═══════════════════
      EDIT ACTIVITY MODAL
      ═══════════════════ -->
-<div id="edit-overlay" class="overlay" onclick="maybeCloseEdit(event)">
+<div id="edit-overlay" class="overlay">
   <div class="mbox">
     <div class="mbox-title">✦ 编辑记录 ✦</div>
     <div id="edit-cats" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px"></div>
@@ -797,7 +862,7 @@ body::before {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px">
       <div>
         <div style="font-size:.68rem;color:var(--ink3);letter-spacing:.06em;margin-bottom:4px">开始时间（不可更改）</div>
-        <div id="edit-start-time" style="font-family:monospace;font-size:.88rem;padding:7px 10px;background:var(--parch3);border-radius:5px;border:1px solid var(--border2);color:var(--ink2)"></div>
+        <div id="edit-start-time" style="font-family:var(--font-mono);font-size:.88rem;padding:7px 10px;background:var(--parch3);border-radius:5px;border:1px solid var(--border2);color:var(--ink2)"></div>
       </div>
       <div>
         <div style="font-size:.68rem;color:var(--ink3);letter-spacing:.06em;margin-bottom:4px">结束时间</div>
@@ -814,9 +879,17 @@ body::before {
     </div>
 
     <div style="margin-top:12px">
-      <div style="font-size:.68rem;color:var(--ink3);letter-spacing:.06em;margin-bottom:4px">具体做了什么（可选）</div>
-      <textarea id="edit-detail" class="m-input" rows="2" placeholder="在这个专注主题下具体干了什么…"
-        style="margin:0;resize:vertical;font-size:.82rem;line-height:1.5"></textarea>
+      <div style="font-size:.68rem;color:var(--ink3);letter-spacing:.06em;margin-bottom:4px">备注（可选）</div>
+      <div id="edit-notes-single">
+        <textarea id="edit-detail-single" class="m-input" rows="2" placeholder="备注…"
+          style="margin:0;resize:vertical;font-size:.82rem;line-height:1.5"></textarea>
+      </div>
+      <div id="edit-notes-work" style="display:none">
+        <textarea id="edit-work-line1" class="m-input" rows="1" placeholder="工作内容…"
+          style="margin:0 0 8px;resize:vertical;font-size:.82rem;line-height:1.5"></textarea>
+        <textarea id="edit-work-line2" class="m-input" rows="1" placeholder="产出 / 决策…"
+          style="margin:0;resize:vertical;font-size:.82rem;line-height:1.5"></textarea>
+      </div>
     </div>
 
     <div class="m-btn-row">
@@ -831,7 +904,7 @@ body::before {
 <!-- ═════════════════════════
      MANUAL ADD MODAL
      ═════════════════════════ -->
-<div id="manual-overlay" class="overlay" onclick="maybeCloseManual(event)">
+<div id="manual-overlay" class="overlay">
   <div class="mbox" style="width:480px">
     <div class="mbox-title">✚ 补录往期记录</div>
 
@@ -867,6 +940,19 @@ body::before {
     <input id="ma-note" class="m-input" type="text" list="ma-suggestions" placeholder="选择专注主题，或直接输入" style="margin:0"/>
     <datalist id="ma-suggestions"></datalist>
 
+    <!-- 备注区：工作分类显示双行，其他分类单行 -->
+    <div style="margin-top:12px">
+      <div id="ma-notes-single">
+        <label style="font-size:.72rem;color:var(--ink3);letter-spacing:.06em;display:block;margin-bottom:4px">备注（可选）</label>
+        <input id="ma-detail-single" class="m-input" type="text" placeholder="备注…" style="margin:0"/>
+      </div>
+      <div id="ma-notes-work" style="display:none">
+        <label style="font-size:.72rem;color:var(--ink3);letter-spacing:.06em;display:block;margin-bottom:4px">备注</label>
+        <input id="ma-work-line1" class="m-input" type="text" placeholder="工作内容" style="margin:0 0 8px"/>
+        <input id="ma-work-line2" class="m-input" type="text" placeholder="产出 / 决策" style="margin:0"/>
+      </div>
+    </div>
+
     <div class="m-btn-row" style="margin-top:18px">
       <div style="flex:1"></div>
       <button class="btn-cancel" onclick="closeManualAdd()">取消</button>
@@ -883,8 +969,14 @@ body::before {
     <div class="mbox-title">📋 新建任务</div>
     <label style="font-size:.72rem;color:var(--ink3);letter-spacing:.06em;display:block;margin-bottom:4px">任务标题</label>
     <input id="ta-title" class="m-input" type="text" placeholder="任务名称…" style="margin:0 0 14px"/>
+    <label style="font-size:.72rem;color:var(--ink3);letter-spacing:.06em;display:block;margin-bottom:4px">所属分类（可选）</label>
+    <select id="ta-cat" class="m-input" style="margin:0 0 10px">
+      <option value="">-- 不关联分类 --</option>
+    </select>
     <label style="font-size:.72rem;color:var(--ink3);letter-spacing:.06em;display:block;margin-bottom:4px">所属主题（可选）</label>
-    <select id="ta-topic" class="m-input" style="margin:0 0 14px"></select>
+    <select id="ta-topic" class="m-input" style="margin:0 0 14px" disabled>
+      <option value="">-- 先选分类 --</option>
+    </select>
     <label style="font-size:.72rem;color:var(--ink3);letter-spacing:.06em;display:block;margin-bottom:6px">时间范围</label>
     <div id="ta-scope-group" style="display:flex;gap:8px;margin-bottom:18px">
       <button class="scope-btn active" data-scope="day">按日</button>
@@ -1008,6 +1100,8 @@ let _allTasks=[];
 let _completingTask=null;  // {id, category, title, scope_date}
 let _addTaskScope='day', _addTaskScopeDate='';
 let _editingTask=null;     // full task object being edited
+let _topicDetailName=null; // null = topic list view; string = timeline for that topic
+let _filterCat=null;      // null = show all; string = only this category
 
 const PALETTE=[
   "#c8320a","#1a5fa3","#6b1a8a","#b07a10","#c83264",
@@ -1050,6 +1144,7 @@ function scopeLabel(s){return s==='day'?'日':s==='week'?'周':'月';}
 async function renderTaskSection(containerEl,scope,scopeDate){
   let tasks=[];
   try{ tasks=await api(`/api/tasks?scope=${scope}&scope_date=${encodeURIComponent(scopeDate)}&done=0`); }catch(_){}
+  if(_filterCat) tasks=tasks.filter(t=>t.category===_filterCat);
   const label=scope==='day'?'今日任务':scope==='week'?'本周任务':'本月任务';
   const taskRows=tasks.map(t=>`
     <div class="task-item" data-tid="${t.id}" style="cursor:pointer" title="点击编辑">
@@ -1154,22 +1249,28 @@ function prioBadge(note){
    ═══════════════════════════════ */
 function setView(v){
   view=v;
+  if(v!=='topic') _topicDetailName=null;
+  _filterCat=null;
   const isSets  = v==='settings';
   const isTopic = v==='topic';
-  ['day','week','month','topic','settings'].forEach(x=>{
+  const isTasks = v==='tasks';
+  const isTimeView = !isSets && !isTopic && !isTasks;
+  ['day','week','month','topic','tasks','settings'].forEach(x=>{
     document.getElementById('tab-'+x).className='tab'+(x===v?' on':'');
   });
-  // nav-row / manual-add-row / cat-summary: 仅在 day/week/month 显示
-  ['nav-row','manual-add-row','cat-summary'].forEach(id=>{
+  // nav-row / manual-add-row / cat-summary / goals-panel: 仅在 day/week/month 显示
+  ['nav-row','manual-add-row','cat-summary','goals-panel'].forEach(id=>{
     const e=document.getElementById(id);
-    if(e) e.style.display=(isSets||isTopic)?'none':'';
+    if(e) e.style.display=isTimeView?'':'none';
   });
-  document.getElementById('content').style.display=isSets?'none':'';
+  document.getElementById('content').style.display=(isSets||isTasks)?'none':'';
   document.getElementById('settings-pane').style.display=isSets?'block':'none';
+  document.getElementById('tasks-pane').style.display=isTasks?'block':'none';
   // task-panel visible only for day/week/month
   const tp=document.getElementById('task-panel');
-  if(tp){ tp.style.display=(isSets||isTopic)?'none':''; if(isSets||isTopic) tp.innerHTML=''; }
+  if(tp){ tp.style.display=isTimeView?'':'none'; if(!isTimeView) tp.innerHTML=''; }
   if(isSets){ renderSTab1(); renderCatsTopics(); }
+  else if(isTasks){ renderTasksView(); }
   else render();
 }
 function nav(dir){
@@ -1185,12 +1286,20 @@ function nav(dir){
 function renderSummary(stats){
   document.getElementById('cat-summary').innerHTML=CATS.map(cat=>{
     const s=stats[cat]||{mins:0,cnt:0},c=cc(cat);
-    return`<div class="cat-card${s.cnt===0?' dim':''}" style="border-top-color:${c}">
+    const active=_filterCat===cat;
+    const nameAttr=esc(cat).replace(/'/g,"&#39;");
+    return`<div class="cat-card${s.cnt===0?' dim':''}${active?' cat-active':''}"
+      style="border-top-color:${c};cursor:pointer${active?`;outline:2px solid ${c};background:${c}18`:''}"
+      onclick="toggleCatFilter('${nameAttr}')">
       <div class="cc-name" style="color:${c}">${esc(cat)}</div>
       <div class="cc-time" style="color:${c}">${fmtDur(s.mins)}</div>
       <div class="cc-cnt">${s.cnt}次</div>
     </div>`;
   }).join('');
+}
+function toggleCatFilter(cat){
+  _filterCat=(_filterCat===cat)?null:cat;
+  render();
 }
 
 /* ═══════════════════════════════
@@ -1198,6 +1307,8 @@ function renderSummary(stats){
    ═══════════════════════════════ */
 async function renderTopic(){
   const el=document.getElementById('content');
+  if(_topicDetailName!==null){ await _renderTopicTimeline(el,_topicDetailName); return; }
+
   el.innerHTML='<div class="loading">✦ 詠唱中 · Loading ✦</div>';
   const all=await api('/api/focus_topics');
   if(!all.length){
@@ -1222,18 +1333,87 @@ async function renderTopic(){
         const pct=Math.round(t.total_mins/maxMins*100);
         const rank=i+1;
         const pb=prioBadge(t.name);
-        return`<div class="tnote-row">
+        const tNameAttr=esc(t.name).replace(/'/g,"&#39;");
+        return`<div class="tnote-row" onclick="_showTopicTimeline('${tNameAttr}')"
+                    style="cursor:pointer" title="点击查看该主题完整时间线">
           <span style="font-size:.7rem;color:var(--ink3);width:16px;text-align:right;flex-shrink:0">${rank}</span>
           <div class="tnote-dot" style="background:${catColor}"></div>
           <div class="tnote-note">${esc(t.name)}${pb}</div>
           <div class="tnote-bar-wrap"><div class="tnote-bar" style="background:${catColor};width:${pct}%"></div></div>
           <div class="tnote-cnt" style="color:var(--ink2)">${t.total_cnt}次</div>
           <div class="tnote-dur">${fmtDur(t.total_mins)}</div>
+          <span style="font-size:.68rem;color:var(--ink3);flex-shrink:0;margin-left:4px">→</span>
         </div>`;
       }).join('')}
     </div>`;
   }
   el.innerHTML=html;
+}
+
+function _showTopicTimeline(name){
+  _topicDetailName=name;
+  renderTopic();
+}
+
+async function _renderTopicTimeline(el, topicName){
+  el.innerHTML='<div class="loading">✦ 詠唱中 · Loading ✦</div>';
+  let acts=[];
+  try{ acts=await api(`/api/activities/by_topic?topic=${encodeURIComponent(topicName)}`); }catch(e){}
+
+  const totalMins=acts.reduce((s,a)=>s+actDur(a),0);
+  const topicCat=acts[0]?.category||'';
+  const topicColor=topicCat?(COLORS[topicCat]||'var(--ink2)'):'var(--ink2)';
+
+  let html=`
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap">
+      <button onclick="_topicDetailName=null;renderTopic()"
+              style="padding:5px 14px;border-radius:4px;border:1px solid var(--border);
+                     background:var(--parch2);color:var(--ink2);cursor:pointer;
+                     font-size:.82rem;font-weight:600;letter-spacing:.04em">← 返回</button>
+      <span style="font-size:1.05rem;font-weight:700;color:${topicColor}">${esc(topicName)}</span>
+      <span style="font-size:.78rem;color:var(--ink3)">${acts.length}次 · 累计${fmtDur(totalMins)}</span>
+    </div>`;
+
+  if(!acts.length){
+    html+='<div class="empty-state" style="padding:32px 0">该主题暂无活动记录</div>';
+    el.innerHTML=html; return;
+  }
+
+  // 按日期分组（降序）
+  const byDate={};
+  acts.forEach(a=>{ const day=a.timestamp.slice(0,10); (byDate[day]=byDate[day]||[]).push(a); });
+
+  for(const day of Object.keys(byDate).sort().reverse()){
+    const dayActs=byDate[day];
+    const dayMins=dayActs.reduce((s,a)=>s+actDur(a),0);
+    html+=`<div style="margin-bottom:14px">
+      <div class="section-title" style="margin-bottom:6px">${day} · ${dayActs.length}次 · ${fmtDur(dayMins)}</div>`;
+    dayActs.forEach(a=>{
+      const c=cc(a.category);
+      const ts=a.timestamp, et=a.end_time||'';
+      const estimated=!a.end_time;
+      const endISO=a.end_time||new Date(new Date(a.timestamp).getTime()+IV*60000).toISOString();
+      const sn=esc(a.note).replace(/'/g,"&#39;");
+      const sc=esc(a.category).replace(/'/g,"&#39;");
+      html+=`<div class="act-row" style="border-left-color:${c}"
+               onclick="openEdit(${a.id},'${sc}','${sn}','${ts}','${et}')">
+        <div class="act-row-main">
+          <span class="act-time">${fmtT(ts)}</span>
+          <span style="font-size:.72rem;color:var(--ink3);flex-shrink:0">—</span>
+          <span class="act-time${estimated?' est-time':''}">${fmtT(endISO)}${estimated?'*':''}</span>
+          <span class="cat-pill" style="color:${c}">${esc(a.category)}</span>
+          <span style="font-size:.72rem;color:var(--ink3);margin-left:auto;flex-shrink:0">${fmtDurEn(actDur(a))}</span>
+          <button class="edit-btn" onclick="openEdit(${a.id},'${sc}','${sn}','${ts}','${et}');event.stopPropagation()">✎</button>
+        </div>
+        ${a.detail?`<div style="font-size:.75rem;color:var(--ink2);margin-top:4px;padding-top:4px;border-top:1px dashed var(--border2);white-space:pre-wrap">${esc(a.detail)}</div>`:''}
+      </div>`;
+    });
+    html+='</div>';
+  }
+  el.innerHTML=html;
+  // 给 openEdit 提供数据缓存
+  window._dayActMap=window._dayActMap||{};
+  acts.forEach(a=>{ window._dayActMap[a.id]=a; });
 }
 
 /* 兼容 settings 面板里仍调用 renderFocusTopics 的地方 */
@@ -1259,6 +1439,8 @@ async function renderDay(){
     return;
   }
 
+  const shown=_filterCat?acts.filter(a=>a.category===_filterCat):acts;
+
   // 每条记录的实际/推算时长（分钟）
   function actMins(a){
     if(a.end_time) return Math.max(1,Math.round((new Date(a.end_time)-new Date(a.timestamp))/60000));
@@ -1270,19 +1452,16 @@ async function renderDay(){
     return new Date(new Date(a.timestamp).getTime()+IV*60000).toISOString();
   }
 
-  // 每个 note：累计分钟数 & 最后一条的索引
-  const noteCum={}, noteLastIdx={};
-  acts.forEach((a,i)=>{
-    noteCum[a.note]=(noteCum[a.note]||0)+actMins(a);
-    noteLastIdx[a.note]=i;
-  });
-
   // 缓存供 openEdit 读取 detail
   window._dayActMap={};
   acts.forEach(a=>{ window._dayActMap[a.id]=a; });
 
-  el.innerHTML=`<div class="row-cnt">${acts.length} 条记录</div>
-    <div>${acts.map((a,i)=>{
+  const filterTag=_filterCat
+    ?` · <span style="color:${cc(_filterCat)};font-weight:600">${esc(_filterCat)}</span>`+
+      `<span style="margin-left:6px;color:var(--ink3);cursor:pointer;font-size:.78rem" onclick="toggleCatFilter('${esc(_filterCat).replace(/'/g,"&#39;")}')">✕</span>`
+    :'';
+  el.innerHTML=`<div class="row-cnt">${shown.length} 条记录${filterTag}</div>
+    <div>${shown.map((a,i)=>{
       const c=cc(a.category),
             sn=esc(a.note).replace(/'/g,"&#39;"),
             sc=esc(a.category).replace(/'/g,"&#39;"),
@@ -1290,8 +1469,7 @@ async function renderDay(){
       const estimated=!a.end_time;
       const endISO=calcEndISO(a);
       const endLabel=fmtT(endISO);
-      const {num,unit}=fmtDurParts(noteCum[a.note]);
-      const cumHtml=`<span class="cum-box"><span class="cum-lbl">累计</span><span class="cum-num">${num}</span><span class="cum-unit">${unit}</span></span>`;
+      const durHtml=`<span class="act-dur">${fmtDurEn(actMins(a))}</span>`;
       return`<div class="act-row" style="border-left-color:${c}"
                onclick="openEdit(${a.id},'${sc}','${sn}','${ts}','${et}')">
         <div class="act-row-main">
@@ -1300,18 +1478,22 @@ async function renderDay(){
           <span class="act-time${estimated?' est-time':''}" title="${estimated?'按弹窗间隔推算':'实际结束时间'}">${endLabel}${estimated?'*':''}</span>
           <span class="cat-pill" style="color:${c}">${esc(a.category)}</span>
           <span class="act-note"><span class="act-note-text">${esc(a.note)}</span>${prioBadge(a.note)}</span>
-          ${cumHtml}
+          ${durHtml}
           <button class="edit-btn" onclick="openEdit(${a.id},'${sc}','${sn}','${ts}','${et}');event.stopPropagation()">✎</button>
         </div>
-        <input class="act-detail-input" type="text"
+        <textarea class="act-detail-input"
           placeholder="具体做了什么…"
-          value="${esc(a.detail||'').replace(/'/g,'&#39;')}"
           data-id="${a.id}"
           onclick="event.stopPropagation()"
           onblur="saveDetail(this)"
-          onkeydown="if(event.key==='Enter'){this.blur();event.preventDefault();}"/>
+          oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+          >${esc(a.detail||'')}</textarea>
       </div>`;
     }).join('')}</div>`;
+  // auto-size all detail textareas after DOM insertion
+  el.querySelectorAll('textarea.act-detail-input').forEach(ta=>{
+    ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px';
+  });
   // task panel
   await renderTaskSection(document.getElementById('task-panel'),'day',fd(cur));
 }
@@ -1335,51 +1517,79 @@ async function renderWeek(){
   ]);
   renderSummary(stats);
 
-  // 填充缓存，供 openEdit / saveDetail 使用
-  if(!window._dayActMap) window._dayActMap={};
+  window._dayActMap=window._dayActMap||{};
   acts.forEach(a=>{ window._dayActMap[a.id]=a; });
 
   const byDay={};
   acts.forEach(a=>{const k=a.timestamp.slice(0,10);(byDay[k]=byDay[k]||[]).push(a);});
   const tStr=fd(today());
   const DN=['周一','周二','周三','周四','周五','周六','周日'];
-  let html='';
+
+  function actMins(a){
+    if(a.end_time) return Math.max(1,Math.round((new Date(a.end_time)-new Date(a.timestamp))/60000));
+    return IV;
+  }
+  function calcEndISO(a){
+    if(a.end_time) return a.end_time;
+    return new Date(new Date(a.timestamp).getTime()+IV*60000).toISOString();
+  }
+
+  const totalShown=(_filterCat?acts.filter(a=>a.category===_filterCat):acts).length;
+  const filterTag=_filterCat
+    ?` · <span style="color:${cc(_filterCat)};font-weight:600">${esc(_filterCat)}</span>`+
+      `<span style="margin-left:6px;color:var(--ink3);cursor:pointer;font-size:.78rem" onclick="toggleCatFilter('${esc(_filterCat).replace(/'/g,"&#39;")}')">✕</span>`
+    :'';
+
+  let html=`<div class="row-cnt">${totalShown} 条记录${filterTag}</div>`;
 
   for(let i=0;i<7;i++){
     const dd=new Date(monday);dd.setDate(monday.getDate()+i);
-    const key=fd(dd),rows=byDay[key]||[],isToday=key===tStr;
-    const totalMins=rows.reduce((s,a)=>s+actDur(a),0);
-    const cc_map={};rows.forEach(a=>{cc_map[a.category]=(cc_map[a.category]||0)+1;});
-    const bar=CATS.filter(c=>cc_map[c]).map(c=>{
-      const pct=Math.round(cc_map[c]/rows.length*100);
-      return`<div class="cat-bar-seg" style="background:${COLORS[c]||'#c8960a'};width:${pct}%;min-width:${pct?4:0}px"></div>`;
-    }).join('');
+    const key=fd(dd),isToday=key===tStr;
+    const rows=(_filterCat?(byDay[key]||[]).filter(a=>a.category===_filterCat):byDay[key]||[]);
+    const totalMins=rows.reduce((s,a)=>s+actMins(a),0);
 
-    html+=`<div class="week-day${isToday?' today-card':''}">
-      <div style="display:flex;align-items:center;justify-content:space-between">
-        <span style="font-weight:700;font-size:.87rem;color:${isToday?'var(--crimson)':'var(--ink)'}">
-          ${DN[i]} · ${dd.toLocaleDateString('zh',{month:'short',day:'numeric'})}</span>
-        <span style="color:var(--ink3);font-size:.7rem">${rows.length}次 · ${fmtDur(totalMins)}</span>
-      </div>
-      ${rows.length?`<div class="cat-bar">${bar}</div>`:''}
-      ${rows.length?`<div style="margin-top:10px">${rows.map(a=>{
-        const c=cc(a.category),
-              sn=esc(a.note).replace(/'/g,"&#39;"),
-              sc=esc(a.category).replace(/'/g,"&#39;"),
-              ts=a.timestamp, et=a.end_time||'';
-        return`<div class="act-row" style="border-left-color:${c}"
-                 onclick="openEdit(${a.id},'${sc}','${sn}','${ts}','${et}')">
-          <span class="act-time">${fmtT(a.timestamp)}</span>
-          <span class="cat-pill" style="color:${c}">${esc(a.category)}</span>
-          <span class="act-note">${esc(a.note)}</span>${prioBadge(a.note)}
-          <span style="font-size:.7rem;color:var(--ink3);margin-left:auto;white-space:nowrap">${fmtDurEn(actDur(a))}</span>
-          <button class="edit-btn" onclick="openEdit(${a.id},'${sc}','${sn}','${ts}','${et}');event.stopPropagation()">✎</button>
-        </div>`;}).join('')}</div>`
-      :`<div style="color:var(--ink3);font-size:.78rem;margin-top:6px;letter-spacing:.06em">本日は記録なし</div>`}
+    // Day header — matches section-title style, highlighted if today
+    html+=`<div class="section-title" style="margin-top:16px;margin-bottom:6px;${isToday?'color:var(--crimson)':''}">
+      ${DN[i]} · ${dd.toLocaleDateString('zh',{month:'short',day:'numeric'})}
+      <span style="font-weight:400;font-size:.72rem;color:var(--ink3);margin-left:8px">${rows.length ? rows.length+'条 · '+fmtDur(totalMins) : '无记录'}</span>
     </div>`;
+
+    if(!rows.length) continue;
+
+    html+=rows.map(a=>{
+      const c=cc(a.category),
+            sn=esc(a.note).replace(/'/g,"&#39;"),
+            sc=esc(a.category).replace(/'/g,"&#39;"),
+            ts=a.timestamp, et=a.end_time||'';
+      const estimated=!a.end_time;
+      const endLabel=fmtT(calcEndISO(a));
+      return`<div class="act-row" style="border-left-color:${c}"
+               onclick="openEdit(${a.id},'${sc}','${sn}','${ts}','${et}')">
+        <div class="act-row-main">
+          <span class="act-time">${fmtT(ts)}</span>
+          <span style="font-size:.72rem;color:var(--ink3);flex-shrink:0">—</span>
+          <span class="act-time${estimated?' est-time':''}" title="${estimated?'按弹窗间隔推算':'实际结束时间'}">${endLabel}${estimated?'*':''}</span>
+          <span class="cat-pill" style="color:${c}">${esc(a.category)}</span>
+          <span class="act-note"><span class="act-note-text">${esc(a.note)}</span>${prioBadge(a.note)}</span>
+          <span class="act-dur">${fmtDurEn(actMins(a))}</span>
+          <button class="edit-btn" onclick="openEdit(${a.id},'${sc}','${sn}','${ts}','${et}');event.stopPropagation()">✎</button>
+        </div>
+        <textarea class="act-detail-input"
+          placeholder="具体做了什么…"
+          data-id="${a.id}"
+          onclick="event.stopPropagation()"
+          onblur="saveDetail(this)"
+          oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"
+          >${esc(a.detail||'')}</textarea>
+      </div>`;
+    }).join('');
   }
-  document.getElementById('content').innerHTML=html;
-  // task panel — show tasks for the current week (Monday-based)
+
+  const el=document.getElementById('content');
+  el.innerHTML=html;
+  el.querySelectorAll('textarea.act-detail-input').forEach(ta=>{
+    ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px';
+  });
   await renderTaskSection(document.getElementById('task-panel'),'week',taskScopeDate('week',cur));
 }
 
@@ -1460,7 +1670,7 @@ function openEdit(id,category,note,timestamp,endTime){
   _updateSuggestions('edit-suggestions', category);
   // detail from cached day map
   const _act=window._dayActMap&&window._dayActMap[id];
-  document.getElementById('edit-detail').value=_act?(_act.detail||''):'';
+  _updateEditDetailFields(category, _act?(_act.detail||''):'');
 
   // start time display
   document.getElementById('edit-start-time').textContent=timestamp?fmtT(timestamp):'—';
@@ -1503,13 +1713,34 @@ function clearEndTime(){
   document.getElementById('edit-duration').textContent='';
 }
 
+function _updateEditDetailFields(cat, detail){
+  const isWork = cat === '工作';
+  document.getElementById('edit-notes-single').style.display = isWork ? 'none' : '';
+  document.getElementById('edit-notes-work').style.display   = isWork ? '' : 'none';
+  if(isWork){
+    const parts = (detail||'').split('\n');
+    document.getElementById('edit-work-line1').value = parts[0]||'';
+    document.getElementById('edit-work-line2').value = parts[1]||'';
+  } else {
+    document.getElementById('edit-detail-single').value = detail||'';
+  }
+}
+function _getEditDetail(){
+  if(document.getElementById('edit-notes-work').style.display !== 'none'){
+    const l1=(document.getElementById('edit-work-line1').value||'').trim();
+    const l2=(document.getElementById('edit-work-line2').value||'').trim();
+    return [l1,l2].filter(Boolean).join('\n');
+  }
+  return (document.getElementById('edit-detail-single').value||'').trim();
+}
 function selCat(cat,btn){
   editCat=cat;
   document.querySelectorAll('#edit-cats .m-cat').forEach(b=>b.classList.remove('sel'));
   btn.classList.add('sel');
   _updateSuggestions('edit-suggestions', cat);
+  _updateEditDetailFields(cat, _getEditDetail());
 }
-function maybeCloseEdit(e){if(e.target===document.getElementById('edit-overlay'))closeEdit();}
+function maybeCloseEdit(e){}
 function closeEdit(){document.getElementById('edit-overlay').classList.remove('open');}
 async function saveAct(){
   const note=document.getElementById('edit-note').value.trim();
@@ -1523,7 +1754,7 @@ async function saveAct(){
     if(end<=start) end.setDate(end.getDate()+1);
     end_time=toLocalISO(end);
   }
-  const detail=document.getElementById('edit-detail').value.trim()||null;
+  const detail=_getEditDetail()||null;
   await fetch(`/api/activities/${editId}`,{method:'PUT',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({category:editCat,note:note||editCat,end_time,detail})});
@@ -1594,7 +1825,7 @@ async function applyInterval(mins){
    SETTINGS — SUB-TABS
    ═══════════════════════════════ */
 function switchSTab(tab){
-  ['timer','cats','topics','tasks','export'].forEach(t=>{
+  ['timer','cats','topics','tasks','export','life'].forEach(t=>{
     const btn=document.getElementById('stab-'+t);
     const pane=document.getElementById('stab-'+t+'-pane');
     if(btn)  btn.className='stab'+(t===tab?' on':'');
@@ -1604,6 +1835,7 @@ function switchSTab(tab){
   else if(tab==='topics') _renderTopicSettings();
   else if(tab==='tasks')  _renderTaskSettings();
   else if(tab==='export') initExportDates();
+  else if(tab==='life')   _renderLifeArchive();
 }
 
 async function renderSTab1(){
@@ -1735,6 +1967,7 @@ function _renderTopicSettings(){
       <div style="display:flex;gap:3px;flex-shrink:0">${prioButtons}</div>
       <span style="font-size:.63rem;color:var(--ink3);white-space:nowrap;flex-shrink:0">${t.cnt_7d}次/周</span>
       ${otherCats.length?`<select class="topic-reassign" data-tid="${t.id}" data-tname="${tn}"><option value="">迁移到…</option>${opts}</select>`:''}
+      <button class="topic-archive-btn" data-tid="${t.id}" data-tname="${tn}" title="归档此主题" style="font-size:.72rem;padding:2px 7px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--ink3);cursor:pointer;white-space:nowrap">📦</button>
       <button class="topic-del" data-tid="${t.id}" data-tname="${tn}">✕</button>
     </div>`;
   }).join('');
@@ -1750,11 +1983,46 @@ function _renderTopicSettings(){
     });
     const reassign=row.querySelector('.topic-reassign');
     if(reassign) reassign.addEventListener('change', ()=>reassignTopic(+reassign.dataset.tid, reassign.dataset.tname, _selectedCat, reassign));
+    const archBtn=row.querySelector('.topic-archive-btn');
+    if(archBtn) archBtn.addEventListener('click', ()=>archiveTopic(+archBtn.dataset.tid, archBtn.dataset.tname));
     const delBtn=row.querySelector('.topic-del');
     if(delBtn) delBtn.addEventListener('click', ()=>deleteTopic(+delBtn.dataset.tid, delBtn.dataset.tname));
   });
 
   _attachTopicAddBtn();
+  _renderArchivedTopics();
+}
+
+async function _renderArchivedTopics(){
+  let container=document.getElementById('archived-topics-section');
+  if(!container){
+    container=document.createElement('div');
+    container.id='archived-topics-section';
+    document.getElementById('stab-topics-pane').appendChild(container);
+  }
+  let archived=[];
+  try{ archived=await api('/api/focus_topics/archived'); }catch(_){}
+  if(!archived.length){ container.innerHTML=''; return; }
+  const rows=archived.map(t=>`
+    <div class="archive-topic-row">
+      <span style="flex:1;font-size:.8rem">${esc(t.name)}</span>
+      <span style="font-size:.7rem;color:var(--ink3);margin-right:8px">${esc(t.category)}</span>
+      <span style="font-size:.7rem;color:var(--ink3);margin-right:8px">${t.total_mins?fmtDur(t.total_mins):'0h'}</span>
+      <button data-tid="${t.id}" class="unarchive-btn"
+        style="font-size:.72rem;padding:2px 8px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:var(--ink2);cursor:pointer">
+        复活
+      </button>
+    </div>`).join('');
+  container.innerHTML=`<div class="archive-section">
+    <div class="archive-section-title" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'':'none'">
+      📦 已归档主题 <span style="font-weight:400">(${archived.length})</span>
+      <span style="margin-left:auto;font-size:.68rem">▾ 展开/收起</span>
+    </div>
+    <div id="archived-topics-list">${rows}</div>
+  </div>`;
+  container.querySelectorAll('.unarchive-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>unarchiveTopic(+btn.dataset.tid));
+  });
 }
 
 function _attachTopicAddBtn(){
@@ -2016,7 +2284,11 @@ function openManualAdd(){
   }).join('');
 
   document.getElementById('ma-note').value='';
+  document.getElementById('ma-detail-single').value='';
+  document.getElementById('ma-work-line1').value='';
+  document.getElementById('ma-work-line2').value='';
   _updateMaSuggestions(maCat);
+  _updateMaWorkFields(maCat);
   document.getElementById('manual-overlay').classList.add('open');
   setTimeout(()=>document.getElementById('ma-note').focus(),80);
 }
@@ -2035,17 +2307,21 @@ async function _updateSuggestions(dlId, cat){
 }
 function _updateMaSuggestions(cat){ _updateSuggestions('ma-suggestions', cat); }
 
+function _updateMaWorkFields(cat){
+  const isWork=cat==='工作';
+  document.getElementById('ma-notes-single').style.display=isWork?'none':'';
+  document.getElementById('ma-notes-work').style.display=isWork?'':'none';
+}
+
 function selectMaCat(cat,btn){
   maCat=cat;
   document.querySelectorAll('#ma-cats .m-cat').forEach(b=>b.classList.remove('sel'));
   btn.classList.add('sel');
   document.getElementById('ma-note').value='';
   _updateMaSuggestions(cat);
+  _updateMaWorkFields(cat);
 }
 
-function maybeCloseManual(e){
-  if(e.target===document.getElementById('manual-overlay'))closeManualAdd();
-}
 function closeManualAdd(){
   document.getElementById('manual-overlay').classList.remove('open');
 }
@@ -2056,8 +2332,17 @@ async function submitManualAdd(){
   const sm=parseInt(document.getElementById('ma-sm').value)||0;
   const eh=document.getElementById('ma-eh').value;
   const em=parseInt(document.getElementById('ma-em').value)||0;
-  const note=document.getElementById('ma-note').value.trim();
   if(!date||sh===''||!maCat){await customAlert('请填写日期、开始时间和分类');return;}
+
+  const note=document.getElementById('ma-note').value.trim();
+  let maDetail=null;
+  if(maCat==='工作'){
+    const l1=(document.getElementById('ma-work-line1').value||'').trim();
+    const l2=(document.getElementById('ma-work-line2').value||'').trim();
+    if(l1||l2) maDetail=[l1,l2].filter(Boolean).join('\n');
+  } else {
+    maDetail=(document.getElementById('ma-detail-single').value||'').trim()||null;
+  }
 
   const time=`${p2(parseInt(sh))}:${p2(sm)}`;
   let end_time=null;
@@ -2071,7 +2356,7 @@ async function submitManualAdd(){
   const r=await api('/api/activities/add_manual',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({date,time,end_time,category:maCat,note:note||maCat}),
+    body:JSON.stringify({date,time,end_time,category:maCat,note:note||maCat,detail:maDetail}),
   });
   if(r.error){await customAlert('保存失败：'+r.error);return;}
   closeManualAdd();
@@ -2090,6 +2375,7 @@ async function render(){
     else if(view==='week')  await renderWeek();
     else if(view==='topic') await renderTopic();
     else                    await renderMonth();
+    if(view==='day'||view==='week'||view==='month') await renderGoalsPanel();
   }catch(e){
     document.getElementById('content').innerHTML=
       `<div class="empty-state">Dragon Slave!! 読み込み失敗<br><span style="font-size:.72rem">${e.message}</span></div>`;
@@ -2100,6 +2386,118 @@ async function render(){
   await loadMeta();
   setView('day');
 })();
+
+/* ═══════════════════════════════
+   GOALS PANEL (三件最重要的事)
+   ═══════════════════════════════ */
+function _goalsPeriodKey(){
+  if(view==='day')   return {period:'day',   key:fd(cur)};
+  if(view==='week'){
+    const d=new Date(cur),dow=d.getDay();
+    d.setDate(d.getDate()-(dow===0?6:dow-1));
+    const y=d.getFullYear(),wk=String(Math.ceil(((d-new Date(y,0,1))/86400000+new Date(y,0,1).getDay()+1)/7)).padStart(2,'0');
+    return {period:'week', key:`${y}-W${wk}`};
+  }
+  return {period:'month', key:`${cur.getFullYear()}-${p2(cur.getMonth()+1)}`};
+}
+function _isPastPeriod(){
+  const t=today(), {period,key}=_goalsPeriodKey();
+  if(period==='day')   return fd(t)>key;
+  if(period==='month') return `${t.getFullYear()}-${p2(t.getMonth()+1)}`>key;
+  // week
+  const d=new Date(t),dow=d.getDay(); d.setDate(d.getDate()-(dow===0?6:dow-1));
+  const y=d.getFullYear(),wk=String(Math.ceil(((d-new Date(y,0,1))/86400000+new Date(y,0,1).getDay()+1)/7)).padStart(2,'0');
+  return `${y}-W${wk}`>key;
+}
+async function renderGoalsPanel(){
+  const el=document.getElementById('goals-panel');
+  if(!el) return;
+  const {period,key}=_goalsPeriodKey();
+  const past=_isPastPeriod();
+  let goals={goal_1:'',goal_2:'',goal_3:''};
+  try{ const r=await api(`/api/period_goals?period=${period}&key=${encodeURIComponent(key)}`); if(r&&r.period_key) goals=r; }catch(_){}
+  const label=period==='day'?'今日':period==='week'?'本周':'本月';
+  const ro=past?'readonly':' ';
+  el.innerHTML=`<div class="goals-panel">
+    <div class="goals-panel-title">
+      <span>📌 ${label}三件最重要的事</span>
+      ${past?`<span style="font-size:.68rem;color:var(--ink3);font-weight:400">（${key} · 已归档）</span>`:''}
+    </div>
+    ${[1,2,3].map(n=>`
+    <div class="goal-row">
+      <span class="goal-num">${n}</span>
+      <input class="goal-input" data-n="${n}" ${ro}
+        placeholder="${past?'（未记录）':'写下第'+n+'件最重要的事…'}"
+        value="${esc((goals['goal_'+n]||'')).replace(/"/g,'&quot;')}"/>
+    </div>`).join('')}
+  </div>`;
+  if(!past){
+    el.querySelectorAll('.goal-input').forEach(inp=>{
+      inp.addEventListener('blur', _saveGoals);
+      inp.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); inp.blur(); } });
+    });
+  }
+}
+async function _saveGoals(){
+  const el=document.getElementById('goals-panel');
+  if(!el) return;
+  const inputs=el.querySelectorAll('.goal-input');
+  if(!inputs.length) return;
+  const {period,key}=_goalsPeriodKey();
+  const vals=[...inputs].map(i=>i.value.trim()||null);
+  await fetch('/api/period_goals',{method:'PUT',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({period,key,goal_1:vals[0],goal_2:vals[1],goal_3:vals[2]})});
+}
+
+/* ═══════════════════════════════
+   TOPIC ARCHIVE
+   ═══════════════════════════════ */
+async function archiveTopic(id, name){
+  if(!await _confirm(`将「${name}」移入归档？\n归档后不再出现在选项列表中，历史条目保留。`,'确认归档')) return;
+  await fetch(`/api/focus_topics/${id}/archive`,{method:'POST'});
+  await _reloadTopics();
+  _renderTopicSettings();
+}
+async function unarchiveTopic(id){
+  await fetch(`/api/focus_topics/${id}/unarchive`,{method:'POST'});
+  await _reloadTopics();
+  _renderTopicSettings();
+}
+async function _reloadTopics(){
+  try{ _allTopics=await api('/api/focus_topics'); }catch(_){}
+}
+
+/* ═══════════════════════════════
+   LIFE ARCHIVE (人生时间轴归档)
+   ═══════════════════════════════ */
+async function _renderLifeArchive(){
+  const el=document.getElementById('life-archive-content');
+  if(!el) return;
+  let rows=[];
+  try{ rows=await api('/api/period_goals/archive'); }catch(_){}
+  if(!rows.length){
+    el.innerHTML='<div style="color:var(--ink3);font-size:.78rem;text-align:center;padding:24px 0">暂无归档记录</div>';
+    return;
+  }
+  const byPeriod={day:[],week:[],month:[]};
+  rows.forEach(r=>{ (byPeriod[r.period]||[]).push(r); });
+  const label={day:'按日',week:'按周',month:'按月'};
+  el.innerHTML=Object.entries(byPeriod).filter(([,v])=>v.length).map(([period,entries])=>`
+    <div class="life-archive-group">
+      <div class="life-archive-group-title">${label[period]||period}</div>
+      ${entries.map(e=>`
+        <div class="life-archive-entry">
+          <div class="life-archive-key">${e.period_key}</div>
+          ${[1,2,3].filter(n=>e['goal_'+n]).map(n=>`
+            <div class="life-archive-goal">
+              <span class="life-archive-goal-num">${n}</span>
+              <span>${esc(e['goal_'+n]||'')}</span>
+            </div>`).join('')}
+          ${![1,2,3].some(n=>e['goal_'+n])?'<div style="color:var(--ink3);font-size:.72rem">（未记录）</div>':''}
+        </div>`).join('')}
+    </div>`).join('');
+}
 
 /* ═══════════════════════════════
    TASKS — CRUD & MODALS
@@ -2124,36 +2522,16 @@ async function _addTaskFromSettings(inputEl, scopeEl){
   }catch(e){ await customAlert('添加失败：'+e.message); }
 }
 
-// ── Task settings tab ─────────────────────────────────
+// ── Task settings tab (仅新建任务表单) ─────────────────────────────────
 function _renderTaskSettings(){
-  const catSel       = document.getElementById('task-filter-cat');
-  const topicSel     = document.getElementById('task-filter-topic');
-  const scopeSel     = document.getElementById('task-filter-scope');
-  const newCatSel    = document.getElementById('task-new-cat');
-  if(!catSel||!scopeSel)return;
+  const newCatSel = document.getElementById('task-new-cat');
+  if(!newCatSel) return;
 
-  // populate filter selectors
-  catSel.innerHTML='<option value="">全部分类</option>'+
+  newCatSel.innerHTML='<option value="">* 选择分类</option>'+
     _allCats.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
-  if(newCatSel) newCatSel.innerHTML='<option value="">* 选择分类</option>'+
-    _allCats.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+  _refreshNewTaskTopicSel();
 
-  _refreshFilterTopicSel();   // populate filter topic dropdown
-  _refreshNewTaskTopicSel();  // populate new-task topic dropdown (empty until cat chosen)
-  _renderTaskList();
-
-  // wire filter cascades — use _wired guard to avoid stacking listeners
-  if(!catSel._wired){ catSel._wired=true;
-    catSel.addEventListener('change', ()=>{ _refreshFilterTopicSel(); _renderTaskList(); });
-  }
-  if(topicSel && !topicSel._wired){ topicSel._wired=true;
-    topicSel.addEventListener('change', _renderTaskList);
-  }
-  if(!scopeSel._wired){ scopeSel._wired=true;
-    scopeSel.addEventListener('change', _renderTaskList);
-  }
-  // new-task cat → update topic dropdown & enable it
-  if(newCatSel && !newCatSel._wired){ newCatSel._wired=true;
+  if(!newCatSel._wired){ newCatSel._wired=true;
     newCatSel.addEventListener('change', _refreshNewTaskTopicSel);
   }
   const addBtn=document.getElementById('task-new-add-btn');
@@ -2164,17 +2542,6 @@ function _renderTaskSettings(){
   if(titleInput && !titleInput._wired){ titleInput._wired=true;
     titleInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){e.preventDefault();_addTaskFromSettingsForm();} });
   }
-}
-
-// Filter panel: topic dropdown follows category filter selection
-function _refreshFilterTopicSel(){
-  const catSel   = document.getElementById('task-filter-cat');
-  const topicSel = document.getElementById('task-filter-topic');
-  if(!topicSel)return;
-  const filterCat=catSel?.value||'';
-  const topics=_allTopics.filter(t=>!filterCat||(t.category||'')===filterCat);
-  topicSel.innerHTML='<option value="">全部主题</option>'+
-    topics.map(t=>`<option value="${esc(t.name)}">${esc(t.name)}</option>`).join('');
 }
 
 // New-task form: topic dropdown follows category selection; disabled until cat chosen
@@ -2194,44 +2561,6 @@ function _refreshNewTaskTopicSel(){
   newTopicSel.disabled=false;
 }
 
-function _renderTaskList(){
-  const catSel  = document.getElementById('task-filter-cat');
-  const topicSel= document.getElementById('task-filter-topic');
-  const scopeSel= document.getElementById('task-filter-scope');
-  const el=document.getElementById('tasks-settings-list');
-  if(!el)return;
-  const filterCat  =catSel?.value||'';
-  const filterTopic=topicSel?.value||'';
-  const filterScope=scopeSel?.value||'';
-  let tasks=[..._allTasks];
-  if(filterCat)   tasks=tasks.filter(t=>t.category===filterCat);
-  if(filterTopic) tasks=tasks.filter(t=>t.topic_name===filterTopic);
-  if(filterScope) tasks=tasks.filter(t=>t.scope===filterScope);
-  if(!tasks.length){
-    el.innerHTML=`<div style="color:var(--ink3);font-size:.78rem;text-align:center;padding:20px 0">${_allTasks.length?'没有符合条件的任务':'暂无任务，请在下方添加'}</div>`;
-    return;
-  }
-  const SCOPE_COLORS={'day':'var(--crimson)','week':'var(--blue)','month':'var(--purple)'};
-  el.innerHTML=tasks.map(t=>`
-    <div class="task-settings-row" data-tid="${t.id}" style="cursor:pointer" title="点击编辑">
-      <span class="task-scope-badge" style="color:${SCOPE_COLORS[t.scope]||'var(--gold)'};border-color:${SCOPE_COLORS[t.scope]||'var(--gold)'}">${scopeLabel(t.scope)}</span>
-      <span class="task-settings-title">${esc(t.title)}</span>
-      <span class="task-meta" style="white-space:nowrap">${t.category?esc(t.category):''} ${t.topic_name?'/ '+esc(t.topic_name):''}</span>
-      <span class="task-meta" style="min-width:70px;flex-shrink:0">${t.scope_date||''}</span>
-      <button class="task-del-btn task-settings-del" data-tid="${t.id}" style="opacity:1;flex-shrink:0">✕</button>
-    </div>`).join('');
-  el.querySelectorAll('.task-settings-row').forEach(row=>{
-    const tid=+row.dataset.tid;
-    const t=tasks.find(x=>x.id===tid);
-    row.addEventListener('click', e=>{
-      if(e.target.closest('.task-settings-del')) return;
-      if(t) openEditTask(t, ()=>{ _allTasks=_allTasks; _renderTaskList(); });
-    });
-  });
-  el.querySelectorAll('.task-settings-del').forEach(btn=>{
-    btn.addEventListener('click', e=>{ e.stopPropagation(); deleteTaskItem(+btn.dataset.tid, null, null, null, true); });
-  });
-}
 
 async function _addTaskFromSettingsForm(){
   const title   =(document.getElementById('task-new-title')?.value||'').trim();
@@ -2246,18 +2575,15 @@ async function _addTaskFromSettingsForm(){
     await api('/api/tasks',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({title,topic_name:topicName,category,scope,scope_date:scopeDate})});
     document.getElementById('task-new-title').value='';
-    _allTasks=await api('/api/tasks?done=0').catch(()=>[]);
-    _renderTaskList();
   }catch(e){ await customAlert('添加失败：'+e.message); }
 }
 
 // ── Delete task item ──────────────────────────────────
-async function deleteTaskItem(tid, containerEl, scope, scopeDate, fromSettings){
+async function deleteTaskItem(tid, containerEl, scope, scopeDate, fromTasksView){
   if(!await customConfirm('删除该任务？','删除'))return;
   await api(`/api/tasks/${tid}`,{method:'DELETE'});
-  if(fromSettings){
-    _allTasks=await api('/api/tasks?done=0').catch(()=>[]);
-    _renderTaskList();
+  if(fromTasksView){
+    await renderTasksView();
   } else if(containerEl && scope && scopeDate){
     await renderTaskSection(containerEl, scope, scopeDate);
   } else {
@@ -2265,18 +2591,138 @@ async function deleteTaskItem(tid, containerEl, scope, scopeDate, fromSettings){
   }
 }
 
+// ── Tasks view (按任务 tab) ────────────────────────────
+let _tvAllTasks = [];
+
+async function renderTasksView(){
+  const catSel   = document.getElementById('tv-filter-cat');
+  const topicSel = document.getElementById('tv-filter-topic');
+  const scopeSel = document.getElementById('tv-filter-scope');
+  const doneSel  = document.getElementById('tv-filter-done');
+  const el       = document.getElementById('tv-tasks-list');
+  if(!el) return;
+
+  // ensure cats/topics are loaded
+  if(!_allCats.length || !_allTopics.length){
+    [_allCats,_allTopics]=await Promise.all([api('/api/categories'),api('/api/focus_topics')]);
+  }
+
+  // populate category dropdown (once, guard with _wired)
+  if(catSel && !catSel._wired){
+    catSel._wired=true;
+    catSel.innerHTML='<option value="">全部分类</option>'+
+      (_allCats||[]).map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+    catSel.addEventListener('change', ()=>{ _tvRefreshTopicSel(); _tvRenderList(); });
+  }
+  _tvRefreshTopicSel();
+  if(topicSel && !topicSel._wired){ topicSel._wired=true; topicSel.addEventListener('change', _tvRenderList); }
+  if(scopeSel && !scopeSel._wired){ scopeSel._wired=true; scopeSel.addEventListener('change', _tvRenderList); }
+  if(doneSel  && !doneSel._wired ){ doneSel._wired=true;  doneSel.addEventListener('change',  async()=>{ await _tvLoadAndRender(); }); }
+
+  // wire "新建任务" button
+  const addBtn=document.getElementById('tv-add-btn');
+  if(addBtn && !addBtn._wired){ addBtn._wired=true;
+    addBtn.addEventListener('click', ()=>openAddTask('day', taskScopeDate('day',new Date())));
+  }
+
+  await _tvLoadAndRender();
+}
+
+function _tvRefreshTopicSel(){
+  const catSel   = document.getElementById('tv-filter-cat');
+  const topicSel = document.getElementById('tv-filter-topic');
+  if(!topicSel) return;
+  const filterCat=catSel?.value||'';
+  const topics=(_allTopics||[]).filter(t=>!filterCat||(t.category||'')===filterCat);
+  topicSel.innerHTML='<option value="">全部主题</option>'+
+    topics.map(t=>`<option value="${esc(t.name)}">${esc(t.name)}</option>`).join('');
+}
+
+async function _tvLoadAndRender(){
+  const doneSel=document.getElementById('tv-filter-done');
+  const doneVal=doneSel?.value??'0';
+  const doneParam=doneVal===''?'':('&done='+doneVal);
+  try{ _tvAllTasks=await api('/api/tasks?'+doneParam.replace(/^&/,'')); }catch(_){ _tvAllTasks=[]; }
+  _tvRenderList();
+}
+
+function _tvRenderList(){
+  const el       = document.getElementById('tv-tasks-list');
+  const catSel   = document.getElementById('tv-filter-cat');
+  const topicSel = document.getElementById('tv-filter-topic');
+  const scopeSel = document.getElementById('tv-filter-scope');
+  const doneSel  = document.getElementById('tv-filter-done');
+  if(!el) return;
+
+  const filterCat  =catSel?.value||'';
+  const filterTopic=topicSel?.value||'';
+  const filterScope=scopeSel?.value||'';
+  const isDone     =(doneSel?.value||'0')==='1';
+
+  let tasks=[..._tvAllTasks];
+  if(filterCat)   tasks=tasks.filter(t=>t.category===filterCat);
+  if(filterTopic) tasks=tasks.filter(t=>t.topic_name===filterTopic);
+  if(filterScope) tasks=tasks.filter(t=>t.scope===filterScope);
+
+  if(!tasks.length){
+    el.innerHTML=`<div style="color:var(--ink3);font-size:.78rem;text-align:center;padding:36px 0">${_tvAllTasks.length?'没有符合条件的任务':'暂无任务，点击上方「＋ 新建任务」添加'}</div>`;
+    return;
+  }
+
+  const SCOPE_COLORS={'day':'var(--crimson)','week':'var(--blue)','month':'var(--purple)'};
+  el.innerHTML=`<div class="row-cnt" style="margin-bottom:8px">${tasks.length} 条任务</div>`+
+    tasks.map(t=>`
+    <div class="task-settings-row" data-tid="${t.id}" style="cursor:pointer;${isDone?'opacity:.6':''}" title="${isDone?'已完成':'点击编辑'}">
+      <span class="task-scope-badge" style="color:${SCOPE_COLORS[t.scope]||'var(--gold)'};border-color:${SCOPE_COLORS[t.scope]||'var(--gold)'}">${scopeLabel(t.scope)}</span>
+      ${isDone?'<span style="font-size:.72rem;color:var(--gold);flex-shrink:0">✓</span>':''}
+      <span class="task-settings-title">${esc(t.title)}</span>
+      <span class="task-meta" style="white-space:nowrap">${t.category?esc(t.category):''} ${t.topic_name?'/ '+esc(t.topic_name):''}</span>
+      <span class="task-meta" style="min-width:70px;flex-shrink:0">${t.scope_date||''}</span>
+      ${!isDone?`<button class="task-check" data-tid="${t.id}" data-cat="${esc(t.category||'')}"
+              data-topic="${esc(t.topic_name||'')}" data-title="${esc(t.title)}"
+              data-sd="${esc(t.scope_date||'')}" title="标记完成" style="opacity:1;flex-shrink:0">○</button>`:''}
+      <button class="task-del-btn" data-tid="${t.id}" style="opacity:1;flex-shrink:0">✕</button>
+    </div>`).join('');
+
+  el.querySelectorAll('.task-settings-row').forEach(row=>{
+    const tid=+row.dataset.tid;
+    const t=tasks.find(x=>x.id===tid);
+    row.addEventListener('click', e=>{
+      if(e.target.closest('.task-del-btn,.task-check')) return;
+      if(t && !isDone) openEditTask(t, ()=>renderTasksView());
+    });
+  });
+  el.querySelectorAll('.task-check').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      e.stopPropagation();
+      const b=e.currentTarget;
+      openTaskComplete(+b.dataset.tid, b.dataset.cat, b.dataset.topic, b.dataset.title, b.dataset.sd);
+    });
+  });
+  el.querySelectorAll('.task-del-btn').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      e.stopPropagation();
+      deleteTaskItem(+e.currentTarget.dataset.tid, null, null, null, true);
+    });
+  });
+}
+
 // ── Open "add task" modal from dashboard ─────────────
 function openAddTask(scope, scopeDate){
   _addTaskScope=scope;
   _addTaskScopeDate=scopeDate;
-  // Update scope buttons
   document.querySelectorAll('#ta-scope-group .scope-btn').forEach(btn=>{
     btn.classList.toggle('active', btn.dataset.scope===scope);
   });
-  // Populate topic selector
-  const sel=document.getElementById('ta-topic');
-  sel.innerHTML='<option value="">-- 不关联主题 --</option>'+
-    (_allTopics||[]).map(t=>`<option value="${esc(t.name)}" data-cat="${esc(t.category||'')}">${esc(t.category||'未分类')} / ${esc(t.name)}</option>`).join('');
+  // 填充分类
+  const catSel=document.getElementById('ta-cat');
+  catSel.innerHTML='<option value="">-- 不关联分类 --</option>'+
+    (_allCats||[]).map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+  catSel.value='';
+  // 主题先禁用，等分类选定后联动填充
+  const topicSel=document.getElementById('ta-topic');
+  topicSel.innerHTML='<option value="">-- 先选分类 --</option>';
+  topicSel.disabled=true;
   document.getElementById('ta-title').value='';
   document.getElementById('task-add-overlay').classList.add('open');
   setTimeout(()=>document.getElementById('ta-title').focus(),80);
@@ -2289,15 +2735,14 @@ function closeAddTask(){
 async function submitAddTask(){
   const title=(document.getElementById('ta-title').value||'').trim();
   if(!title){await customAlert('请输入任务标题');return;}
-  const sel=document.getElementById('ta-topic');
-  const topicName=sel.value||'';
-  const category=topicName?(sel.selectedOptions[0]?.dataset.cat||''):'';
+  const category=document.getElementById('ta-cat').value||'';
+  const topicName=document.getElementById('ta-topic').value||'';
   try{
     await api('/api/tasks',{method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({title,topic_name:topicName,category,scope:_addTaskScope,scope_date:_addTaskScopeDate})});
     closeAddTask();
-    render();
+    if(view==='tasks') await renderTasksView(); else render();
   }catch(e){ await customAlert('添加失败：'+e.message); }
 }
 
@@ -2355,7 +2800,7 @@ async function submitTaskComplete(){
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({category,note,timestamp,end_time})});
     closeTaskDone();
-    render();
+    if(view==='tasks') await renderTasksView(); else render();
   }catch(e){ await customAlert('操作失败：'+e.message); }
 }
 
@@ -2458,6 +2903,26 @@ async function submitEditTask(){
   document.getElementById('ta-title').addEventListener('keydown',function(e){
     if(e.key==='Enter'){e.preventDefault();submitAddTask();}
   });
+  // 分类 → 主题联动
+  document.getElementById('ta-cat').addEventListener('change',function(){
+    const cat=this.value;
+    const topicSel=document.getElementById('ta-topic');
+    if(!cat){
+      topicSel.innerHTML='<option value="">-- 先选分类 --</option>';
+      topicSel.disabled=true;
+      return;
+    }
+    const topics=(_allTopics||[]).filter(t=>(t.category||'')===cat);
+    if(!topics.length){
+      topicSel.innerHTML='<option value="">-- 该分类暂无主题 --</option>';
+      topicSel.disabled=true;
+    } else {
+      topicSel.innerHTML='<option value="">-- 不关联主题 --</option>'+
+        topics.map(t=>`<option value="${esc(t.name)}">${esc(t.name)}</option>`).join('');
+      topicSel.disabled=false;
+    }
+  });
+
   // scope buttons
   document.querySelectorAll('#ta-scope-group .scope-btn').forEach(btn=>{
     btn.addEventListener('click',function(){
@@ -2475,9 +2940,6 @@ async function submitEditTask(){
   document.getElementById('td-save').addEventListener('click',submitTaskComplete);
 
   // task-edit overlay
-  document.getElementById('task-edit-overlay').addEventListener('click',function(e){
-    if(e.target===this) closeEditTask();
-  });
   document.getElementById('te-cancel').addEventListener('click',closeEditTask);
   document.getElementById('te-save').addEventListener('click',submitEditTask);
   document.getElementById('te-title').addEventListener('keydown',function(e){

@@ -60,6 +60,20 @@ final class Database {
         let ftCols = columnNames(table: "focus_topics")
         if !ftCols.contains("category") { exec("ALTER TABLE focus_topics ADD COLUMN category TEXT NOT NULL DEFAULT ''") }
         if !ftCols.contains("priority") { exec("ALTER TABLE focus_topics ADD COLUMN priority TEXT NOT NULL DEFAULT '中'") }
+        if !ftCols.contains("archived") { exec("ALTER TABLE focus_topics ADD COLUMN archived INTEGER NOT NULL DEFAULT 0") }
+
+        exec("""
+            CREATE TABLE IF NOT EXISTS period_goals (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                period      TEXT NOT NULL,
+                period_key  TEXT NOT NULL,
+                goal_1      TEXT,
+                goal_2      TEXT,
+                goal_3      TEXT,
+                updated_at  TEXT DEFAULT (datetime('now','localtime')),
+                UNIQUE(period, period_key)
+            )
+        """)
 
         // One-time migration: Z-suffix (UTC) timestamps → local time, so SQLite
         // julianday() arithmetic stays consistent with Python-written local-time values.
@@ -184,18 +198,25 @@ final class Database {
         ).first
     }
 
-    func saveActivityForSlot(category: String, note: String, slotStart: Date) {
+    func saveActivityForSlot(category: String, note: String, detail: String?, slotStart: Date) {
         let (s, e) = slotBounds(slotStart: slotStart)
         let ts = Self.isoDate(Date())
         exec("DELETE FROM activities WHERE timestamp>=? AND timestamp<?", params: [.text(s), .text(e)])
-        exec("INSERT INTO activities (timestamp,category,note) VALUES (?,?,?)",
-             params: [.text(ts), .text(category), .text(note)])
+        exec("INSERT INTO activities (timestamp,category,note,detail) VALUES (?,?,?,?)",
+             params: [.text(ts), .text(category), .text(note), detail.map { .text($0) } ?? .null])
     }
 
     func getActivities(start: String, end: String) -> [[String: Any]] {
         query(
             "SELECT id,timestamp,end_time,category,note,detail FROM activities WHERE timestamp>=? AND timestamp<? ORDER BY timestamp ASC",
             params: [.text(start), .text(end)]
+        )
+    }
+
+    func getActivitiesByTopic(topicName: String, limit: Int = 300) -> [[String: Any]] {
+        query(
+            "SELECT id,timestamp,end_time,category,note,detail FROM activities WHERE note=? ORDER BY timestamp DESC LIMIT ?",
+            params: [.text(topicName), .int(limit)]
         )
     }
 
@@ -212,13 +233,14 @@ final class Database {
              params: [detail.map { .text($0) } ?? .null, .int(id)])
     }
 
-    func addManual(category: String, note: String, timestamp: String, endTime: String?) {
+    func addManual(category: String, note: String, timestamp: String, endTime: String?, detail: String? = nil) {
         let (s, e) = (timestamp,
                       Self.isoDate((Self.date(from: timestamp) ?? Date()).addingTimeInterval(15*60)))
         exec("DELETE FROM activities WHERE timestamp>=? AND timestamp<?", params: [.text(s), .text(e)])
-        exec("INSERT INTO activities (timestamp,category,note,end_time) VALUES (?,?,?,?)",
+        exec("INSERT INTO activities (timestamp,category,note,end_time,detail) VALUES (?,?,?,?,?)",
              params: [.text(timestamp), .text(category), .text(note),
-                      endTime.map { .text($0) } ?? .null])
+                      endTime.map { .text($0) } ?? .null,
+                      detail.map { .text($0) } ?? .null])
     }
 
     func categoryStats(start: String, end: String, interval: Int) -> [[String: Any]] {
@@ -263,9 +285,31 @@ final class Database {
                    SUM(CASE WHEN a.timestamp>=? THEN 1 ELSE 0 END) AS cnt_7d
             FROM focus_topics ft
             LEFT JOIN activities a ON a.note=ft.name
+            WHERE ft.archived=0
             GROUP BY ft.id ORDER BY total_mins DESC
         """, params: [.int(interval), .text(weekAgo)])
     }
+
+    func getArchivedTopics(interval: Int) -> [[String: Any]] {
+        let weekAgo = Self.isoDate(Date().addingTimeInterval(-7 * 86400))
+        return query("""
+            SELECT ft.id, ft.name, ft.category, ft.priority,
+                   COUNT(a.id) AS total_cnt,
+                   COALESCE(SUM(
+                     CASE WHEN a.end_time IS NOT NULL
+                       THEN CAST((julianday(a.end_time)-julianday(a.timestamp))*1440 AS INTEGER)
+                       ELSE ? END
+                   ), 0) AS total_mins,
+                   SUM(CASE WHEN a.timestamp>=? THEN 1 ELSE 0 END) AS cnt_7d
+            FROM focus_topics ft
+            LEFT JOIN activities a ON a.note=ft.name
+            WHERE ft.archived=1
+            GROUP BY ft.id ORDER BY ft.category, ft.name
+        """, params: [.int(interval), .text(weekAgo)])
+    }
+
+    func archiveTopic(id: Int)   { exec("UPDATE focus_topics SET archived=1 WHERE id=?", params: [.int(id)]) }
+    func unarchiveTopic(id: Int) { exec("UPDATE focus_topics SET archived=0 WHERE id=?", params: [.int(id)]) }
 
     func getFocusTopicsByCategory(_ category: String) -> [[String: Any]] {
         let cutoff = Self.isoDate(Date().addingTimeInterval(-30 * 86400))
@@ -299,7 +343,14 @@ final class Database {
     func updateFocusTopic(id: Int, name: String?, priority: String?) -> [String] {
         var downgraded: [String] = []
         if let n = name {
+            // Fetch old name first so we can cascade the rename to activity records and tasks
+            let oldName = query("SELECT name FROM focus_topics WHERE id=?",
+                                params: [.int(id)]).first?["name"] as? String
             exec("UPDATE focus_topics SET name=? WHERE id=?", params: [.text(n), .int(id)])
+            if let old = oldName, old != n {
+                exec("UPDATE activities SET note=? WHERE note=?", params: [.text(n), .text(old)])
+                exec("UPDATE tasks SET topic_name=? WHERE topic_name=?", params: [.text(n), .text(old)])
+            }
         }
         if let p = priority {
             if p == "高" {
@@ -323,6 +374,28 @@ final class Database {
     }
 
     func deleteFocusTopic(id: Int) { exec("DELETE FROM focus_topics WHERE id=?", params: [.int(id)]) }
+
+    // MARK: - Period goals
+
+    func getPeriodGoals(period: String, key: String) -> [String: Any]? {
+        query("SELECT * FROM period_goals WHERE period=? AND period_key=?",
+              params: [.text(period), .text(key)]).first
+    }
+
+    func upsertPeriodGoals(period: String, key: String, g1: String?, g2: String?, g3: String?) {
+        func v(_ s: String?) -> SQLVal { s.map { .text($0) } ?? .null }
+        exec("""
+            INSERT INTO period_goals (period, period_key, goal_1, goal_2, goal_3, updated_at)
+            VALUES (?,?,?,?,?, datetime('now','localtime'))
+            ON CONFLICT(period, period_key) DO UPDATE SET
+                goal_1=excluded.goal_1, goal_2=excluded.goal_2, goal_3=excluded.goal_3,
+                updated_at=excluded.updated_at
+        """, params: [.text(period), .text(key), v(g1), v(g2), v(g3)])
+    }
+
+    func listPeriodGoalsArchive() -> [[String: Any]] {
+        query("SELECT * FROM period_goals ORDER BY period, period_key DESC")
+    }
 
     // MARK: - Tasks
 

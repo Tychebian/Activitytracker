@@ -3,6 +3,7 @@ import AppKit
 struct DialogResult {
     let category: String
     let note: String
+    let detail: String?
 }
 
 enum ActivityDialog {
@@ -90,11 +91,11 @@ enum ActivityDialog {
 
         if selectedDisplay == CUSTOM {
             guard let note = showCustomInput(category: selectedCat) else { return nil }
-            return DialogResult(category: selectedCat, note: note)
+            return DialogResult(category: selectedCat, note: note, detail: nil)
         }
 
         let note = displayToName[selectedDisplay] ?? selectedDisplay
-        return DialogResult(category: selectedCat, note: note)
+        return DialogResult(category: selectedCat, note: note, detail: nil)
     }
 
     private static func showCustomInput(category: String) -> String? {
@@ -113,4 +114,5 @@ enum ActivityDialog {
         let text = field.stringValue.trimmingCharacters(in: .whitespaces)
         return text.isEmpty ? nil : text
     }
+
 }

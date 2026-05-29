@@ -1,8 +1,9 @@
 import AppKit
 import WebKit
 import UserNotifications
+import ServiceManagement
 
-final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, NSWindowDelegate {
     private var statusItem: NSStatusItem!
     private var dashboardWindow: NSWindow?
     private var webView: WKWebView?
@@ -12,11 +13,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     // MARK: - Launch
 
     func applicationDidFinishLaunching(_ n: Notification) {
-        NSApp.setActivationPolicy(.accessory)
         Database.shared.initializeSchema()
-        LaunchAgent.ensureRegistered()
+        registerLoginItem()
         setupStatusItem()
         setupTimer()
+        showDashboard()
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
     }
 
@@ -32,18 +33,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         return true
     }
 
+    // MARK: - Login Item (SMAppService — macOS 13+)
+
+    private func registerLoginItem() {
+        let svc = SMAppService.mainApp
+        if svc.status == .notRegistered {
+            try? svc.register()
+        }
+    }
+
     // MARK: - Menu bar
 
-    private func setupStatusItem() {
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        statusItem.button?.title = "⏱"
+    private func buildMenu() -> NSMenu {
         let menu = NSMenu()
         menu.addItem(makeItem("记录当前活动…", sel: #selector(manualPrompt)))
         menu.addItem(makeItem("查看 Dashboard",  sel: #selector(openDashboard)))
         menu.addItem(.separator())
         menu.addItem(makeItem("退出",            sel: #selector(quitApp), key: "q"))
-        statusItem.menu = menu
+        return menu
     }
+
+    private func setupStatusItem() {
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        statusItem.button?.title = "⏱"
+        statusItem.isVisible = true
+        statusItem.menu = buildMenu()
+        try? "setupStatusItem called, isVisible=\(statusItem.isVisible), button=\(String(describing: statusItem.button))\n"
+            .write(toFile: "/tmp/at_statusitem_debug.txt", atomically: true, encoding: .utf8)
+    }
+
+    // Dock right-click menu (bug 1 fix)
+    func applicationDockMenu(_ sender: NSApplication) -> NSMenu? { buildMenu() }
 
     private func makeItem(_ title: String, sel: Selector, key: String = "") -> NSMenuItem {
         let item = NSMenuItem(title: title, action: sel, keyEquivalent: key)
@@ -89,7 +109,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         guard let result = ActivityDialog.show(prompt: "现在 \(now.hhmm)，你在做什么？",
                                                existing: existing) else { return }
         Database.shared.saveActivityForSlot(category: result.category, note: result.note,
-                                            slotStart: slotStart)
+                                            detail: result.detail, slotStart: slotStart)
         timer?.resetFromNow()
 
         // Refresh dashboard if open
@@ -111,12 +131,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
     func showDashboard() {
         if dashboardWindow == nil {
             dashboardWindow = makeDashboard()
-        } else {
-            // Reload page so JS reinitialises from setView('day')
-            webView?.load(URLRequest(url: URL(string: "activitytracker://app/")!))
         }
         dashboardWindow?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    // NSWindowDelegate — intercept close and hide instead of destroying the window.
+    // Destroying a window while WKWebView's WebCore threads are running causes
+    // _NSWindowTransformAnimation to hold a zeroing-weak-ref to a CA layer that
+    // WebCore can free first, producing a SIGSEGV on the animation's dealloc path.
+    // Keeping the window + webView alive for the app's lifetime eliminates this entirely.
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        sender.orderOut(nil)
+        return false
     }
 
     private func makeDashboard() -> NSWindow {
@@ -126,8 +153,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
             backing:     .buffered,
             defer:       false
         )
-        win.title   = "活动记录"
-        win.minSize = NSSize(width: 700, height: 500)
+        win.title             = "活动记录"
+        win.minSize           = NSSize(width: 700, height: 500)
+        win.delegate          = self
         win.center()
 
         // WebView + custom scheme

@@ -168,10 +168,18 @@ enum APIHandlers {
               let cat = r.str("category") else { throw APIError.bad("date, time, and category required") }
         let endTime = r.str("end_time")
         let note    = r.str("note") ?? cat
-        // Build ISO timestamp from date + time
+        let detail  = r.str("detail")
         let ts = "\(dateStr)T\(timeStr):00"
-        Database.shared.addManual(category: cat, note: note, timestamp: ts, endTime: endTime)
+        Database.shared.addManual(category: cat, note: note, timestamp: ts, endTime: endTime, detail: detail)
         return try .json(["ok": true])
+    }
+
+    // ── /api/activities/by_topic ──────────────────────────
+    static func activitiesByTopic(_ r: Req) throws -> APIResponse {
+        guard let topic = r.q("topic") else { throw APIError.bad("topic required") }
+        let limit = r.q("limit").flatMap(Int.init) ?? 300
+        let rows = Database.shared.getActivitiesByTopic(topicName: topic, limit: limit)
+        return try .json(rows.map { nullToNil($0) })
     }
 
     // ── /api/category_stats ───────────────────────────────────
@@ -249,6 +257,36 @@ enum APIHandlers {
         guard let id = r.ppInt("id") else { throw APIError.bad("id required") }
         Database.shared.deleteFocusTopic(id: id)
         return try .json(["ok": true])
+    }
+    static func listArchivedTopics(_ r: Req) throws -> APIResponse {
+        let iv = ConfigStore.shared.interval
+        return try .json(Database.shared.getArchivedTopics(interval: iv).map { nullToNil($0) })
+    }
+    static func archiveTopic(_ r: Req) throws -> APIResponse {
+        guard let id = r.ppInt("id") else { throw APIError.bad("id required") }
+        Database.shared.archiveTopic(id: id)
+        return try .json(["ok": true])
+    }
+    static func unarchiveTopic(_ r: Req) throws -> APIResponse {
+        guard let id = r.ppInt("id") else { throw APIError.bad("id required") }
+        Database.shared.unarchiveTopic(id: id)
+        return try .json(["ok": true])
+    }
+
+    // ── /api/period_goals ─────────────────────────────────────
+    static func getPeriodGoals(_ r: Req) throws -> APIResponse {
+        guard let period = r.q("period"), let key = r.q("key") else { throw APIError.bad("period and key required") }
+        let row = Database.shared.getPeriodGoals(period: period, key: key)
+        return try .json(row.map { nullToNil($0) } ?? [:])
+    }
+    static func upsertPeriodGoals(_ r: Req) throws -> APIResponse {
+        guard let period = r.str("period"), let key = r.str("key") else { throw APIError.bad("period and key required") }
+        Database.shared.upsertPeriodGoals(period: period, key: key,
+                                          g1: r.str("goal_1"), g2: r.str("goal_2"), g3: r.str("goal_3"))
+        return try .json(["ok": true])
+    }
+    static func listPeriodGoalsArchive(_ r: Req) throws -> APIResponse {
+        return try .json(Database.shared.listPeriodGoalsArchive().map { nullToNil($0) })
     }
 
     // ── /api/export ───────────────────────────────────────────

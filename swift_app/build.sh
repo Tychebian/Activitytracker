@@ -28,6 +28,7 @@ swiftc \
   -framework AppKit \
   -framework WebKit \
   -framework Foundation \
+  -framework ServiceManagement \
   -lsqlite3 \
   -module-name ActivityTracker \
   -O \
@@ -42,8 +43,8 @@ mkdir -p "$MACOS" "$RES"
 cp "$BUILD/$APP_NAME" "$MACOS/"
 cp "$PROJECT_DIR/templates/index.html" "$RES/"
 
-# 图标（若存在）
-ICON="$PROJECT_DIR/ActivityTracker.app/Contents/Resources/AppIcon.icns"
+# 图标
+ICON="$SCRIPT_DIR/Resources/AppIcon.icns"
 [ -f "$ICON" ] && cp "$ICON" "$RES/"
 
 cat > "$APP/Contents/Info.plist" << PLIST
@@ -61,7 +62,7 @@ cat > "$APP/Contents/Info.plist" << PLIST
   <key>CFBundleExecutable</key>       <string>${APP_NAME}</string>
   <key>LSMinimumSystemVersion</key>   <string>13.0</string>
   <key>NSHighResolutionCapable</key>  <true/>
-  <key>LSUIElement</key>              <true/>
+  <key>LSUIElement</key>              <false/>
   <key>NSUserNotificationAlertStyle</key><string>banner</string>
 </dict></plist>
 PLIST
