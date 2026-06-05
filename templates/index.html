@@ -248,10 +248,10 @@ body::before {
 .task-item { display:flex; align-items:center; gap:8px; padding:6px 10px;
              background:var(--parch2); border:1px solid var(--border2);
              border-left:3px solid var(--gold2); border-radius:0 5px 5px 0; margin:3px 0; }
-.task-check { width:18px; height:18px; border-radius:50%; border:1.5px solid var(--gold);
+.task-check { width:18px; height:18px; border:none; border-radius:3px;
               background:none; cursor:pointer; display:flex; align-items:center; justify-content:center;
-              flex-shrink:0; font-size:.6rem; color:var(--gold); padding:0; transition:all .12s; }
-.task-check:hover { background:var(--glow); transform:scale(1.12); }
+              flex-shrink:0; font-size:.82rem; color:var(--ink3); padding:0; transition:all .12s; }
+.task-check:hover { color:var(--ink); transform:scale(1.15); }
 .task-title { flex:1; font-size:.84rem; color:var(--ink); }
 .task-meta  { font-size:.68rem; color:var(--ink3); white-space:nowrap; }
 .task-scope-badge { font-size:.6rem; font-weight:700; padding:1px 5px; border-radius:3px;
@@ -261,6 +261,12 @@ body::before {
 .task-item:hover .task-del-btn { opacity:1; }
 .task-del-btn:hover { color:#a02808; background:#fde8e0; }
 .task-empty { color:var(--ink3); font-size:.75rem; padding:6px 0 2px; text-align:center; }
+.task-scope-chips { display:flex; gap:5px; margin-bottom:8px; flex-wrap:wrap; }
+.task-scope-chip { font-size:.65rem; font-weight:700; padding:2px 8px; border-radius:10px;
+                   border:1.5px solid var(--border); background:none; cursor:pointer;
+                   color:var(--ink3); transition:all .12s; line-height:1.6; }
+.task-scope-chip:hover { border-color:var(--ink2); color:var(--ink2); }
+.task-scope-chip.active { background:var(--ink2); border-color:var(--ink2); color:#fff; }
 /* scope selector buttons */
 .scope-btn { padding:3px 12px; border-radius:4px; border:1.5px solid var(--border);
              background:none; font-size:.76rem; font-weight:700; cursor:pointer;
@@ -998,6 +1004,10 @@ body::before {
   <div class="mbox" style="width:460px">
     <div class="mbox-title">✓ 完成任务 · 记录时间</div>
     <div id="td-task-info" style="margin-bottom:14px;font-size:.85rem;color:var(--crimson);font-weight:700"></div>
+    <div style="margin-bottom:12px">
+      <label style="font-size:.72rem;color:var(--ink3);letter-spacing:.06em;display:block;margin-bottom:4px">日期</label>
+      <input id="td-date" class="m-input" type="date" style="margin:0;width:100%"/>
+    </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:6px">
       <div>
         <label style="font-size:.72rem;color:var(--ink3);letter-spacing:.06em;display:block;margin-bottom:4px">开始时间</label>
@@ -1093,6 +1103,8 @@ body::before {
    STATE
    ═══════════════════════════════ */
 let CATS=[], COLORS={}, IV=20, AUTO_POPUP=true, TOPIC_PRIORITIES={};
+const SCOPE_COLORS={'day':'var(--crimson)','week':'var(--blue)','month':'var(--purple)'};
+const SCOPE_LABELS={'day':'日','week':'周','month':'月'};
 let view='day', cur=today();
 let editId=null, editCat=null, editTimestamp=null;
 let cpTarget=null, cpOldName=null, newCatColor='#c8320a';
@@ -1141,55 +1153,103 @@ function taskScopeDate(scope,d){
 function scopeLabel(s){return s==='day'?'日':s==='week'?'周':'月';}
 
 // Build & inject task section into a container element
-async function renderTaskSection(containerEl,scope,scopeDate){
-  let tasks=[];
-  try{ tasks=await api(`/api/tasks?scope=${scope}&scope_date=${encodeURIComponent(scopeDate)}&done=0`); }catch(_){}
-  if(_filterCat) tasks=tasks.filter(t=>t.category===_filterCat);
-  const label=scope==='day'?'今日任务':scope==='week'?'本周任务':'本月任务';
-  const taskRows=tasks.map(t=>`
-    <div class="task-item" data-tid="${t.id}" style="cursor:pointer" title="点击编辑">
-      <button class="task-check" data-tid="${t.id}" data-cat="${esc(t.category||'')}"
-              data-topic="${esc(t.topic_name||'')}" data-title="${esc(t.title)}"
-              data-sd="${esc(scopeDate)}" title="标记完成">○</button>
-      <span class="task-title">${esc(t.title)}</span>
-      ${t.topic_name?`<span class="task-meta">${esc(t.topic_name)}</span>`:''}
-      <button class="task-del-btn" data-tid="${t.id}">✕</button>
-    </div>`).join('');
+// ── Multi-scope task panel (day/week/month views) ─────
+async function renderTaskPanel(containerEl, viewScope, curDate){
+  // day view shows all 3 scopes; week shows week+month; month shows month only
+  const scopes = viewScope==='day' ? ['day','week','month']
+               : viewScope==='week' ? ['week','month']
+               : ['month'];
+  const multiScope = scopes.length > 1;
 
-  containerEl.innerHTML=`<div class="task-section">
-    <div class="task-section-hdr">
-      <span class="task-section-title">📋 ${label}</span>
-      <button class="task-add-btn" id="task-add-btn-${scope}">＋ 添加</button>
-    </div>
-    ${taskRows||`<div class="task-empty">暂无${label.replace('任务','')}任务</div>`}
-  </div>`;
+  // Calculate scope_date for each scope
+  const scopeDates={};
+  scopes.forEach(s=>{ scopeDates[s]=taskScopeDate(s,curDate); });
 
-  // attach listeners
-  containerEl.querySelector(`#task-add-btn-${scope}`)
-    ?.addEventListener('click',()=>openAddTask(scope,scopeDate));
-  containerEl.querySelectorAll('.task-item').forEach(row=>{
-    // whole row click → edit (except check/delete buttons)
-    row.addEventListener('click',e=>{
-      if(e.target.closest('.task-check,.task-del-btn')) return;
-      const tid=+row.dataset.tid;
-      const t=tasks.find(x=>x.id===tid);
-      if(t) openEditTask(t, ()=>renderTaskSection(containerEl,scope,scopeDate));
+  // Fetch all scopes in parallel
+  const results=await Promise.all(
+    scopes.map(s=>api(`/api/tasks?scope=${s}&scope_date=${encodeURIComponent(scopeDates[s])}&done=0`).catch(()=>[]))
+  );
+  let allTasks=[];
+  results.forEach((tasks,i)=>{ tasks.forEach(t=>{ t._sd=scopeDates[scopes[i]]; }); allTasks=allTasks.concat(tasks); });
+  if(_filterCat) allTasks=allTasks.filter(t=>t.category===_filterCat);
+
+  let activeFilter=''; // '' = all scopes
+  const panelLabel=viewScope==='day'?'今日任务':viewScope==='week'?'本周任务':'本月任务';
+
+  function renderList(){
+    const shown=activeFilter?allTasks.filter(t=>t.scope===activeFilter):allTasks;
+    const addScope=activeFilter||scopes[0];
+
+    // Scope filter chips (only when multiple scopes)
+    const chipHtml=multiScope?`<div class="task-scope-chips">
+      <button class="task-scope-chip all-chip${activeFilter===''?' active':''}" data-f="">
+        全部<span style="opacity:.5;font-weight:400;margin-left:3px">${allTasks.length}</span>
+      </button>
+      ${scopes.map(s=>{
+        const cnt=allTasks.filter(t=>t.scope===s).length;
+        const on=activeFilter===s;
+        return `<button class="task-scope-chip${on?' active':''}" data-f="${s}"
+        >${SCOPE_LABELS[s]}<span style="opacity:.5;font-weight:400;margin-left:3px">${cnt}</span></button>`;
+      }).join('')}
+    </div>`:'' ;
+
+    const taskRows=shown.map(t=>{
+      const badge=multiScope
+        ?`<span class="task-scope-badge">${SCOPE_LABELS[t.scope]||t.scope}</span>`
+        :'';
+      return `<div class="task-item" data-tid="${t.id}" style="cursor:pointer" title="点击编辑">
+        <button class="task-check" data-tid="${t.id}" data-cat="${esc(t.category||'')}"
+                data-topic="${esc(t.topic_name||'')}" data-title="${esc(t.title)}"
+                data-sd="${esc(t._sd)}" title="标记完成">🗡</button>
+        ${badge}
+        <span class="task-title">${esc(t.title)}</span>
+        ${t.topic_name?`<span class="task-meta">${esc(t.topic_name)}</span>`:''}
+        <button class="task-del-btn" data-tid="${t.id}">✕</button>
+      </div>`;
+    }).join('');
+
+    const emptyMsg=activeFilter
+      ?`暂无${SCOPE_LABELS[activeFilter]||''}任务`
+      :`暂无任务`;
+
+    containerEl.innerHTML=`<div class="task-section">
+      <div class="task-section-hdr">
+        <span class="task-section-title">📋 ${panelLabel}</span>
+        <button class="task-add-btn" id="task-add-btn-panel">＋ 添加</button>
+      </div>
+      ${chipHtml}
+      ${taskRows||`<div class="task-empty">${emptyMsg}</div>`}
+    </div>`;
+
+    const refresh=()=>renderTaskPanel(containerEl,viewScope,curDate);
+
+    containerEl.querySelector('#task-add-btn-panel')
+      ?.addEventListener('click',()=>openAddTask(addScope,scopeDates[addScope]));
+    containerEl.querySelectorAll('.task-scope-chip').forEach(btn=>{
+      btn.addEventListener('click',()=>{ activeFilter=btn.dataset.f; renderList(); });
     });
-  });
-  containerEl.querySelectorAll('.task-check').forEach(btn=>{
-    btn.addEventListener('click',e=>{
-      e.stopPropagation();
-      const b=e.currentTarget;
-      openTaskComplete(+b.dataset.tid,b.dataset.cat,b.dataset.topic,b.dataset.title,b.dataset.sd);
+    containerEl.querySelectorAll('.task-item').forEach(row=>{
+      row.addEventListener('click',e=>{
+        if(e.target.closest('.task-check,.task-del-btn')) return;
+        const t=allTasks.find(x=>x.id===+row.dataset.tid);
+        if(t) openEditTask(t,refresh);
+      });
     });
-  });
-  containerEl.querySelectorAll('.task-del-btn').forEach(btn=>{
-    btn.addEventListener('click',e=>{
-      e.stopPropagation();
-      const tid=+e.currentTarget.dataset.tid;
-      deleteTaskItem(tid,containerEl,scope,scopeDate);
+    containerEl.querySelectorAll('.task-check').forEach(btn=>{
+      btn.addEventListener('click',e=>{
+        e.stopPropagation();
+        const b=e.currentTarget;
+        openTaskComplete(+b.dataset.tid,b.dataset.cat,b.dataset.topic,b.dataset.title,b.dataset.sd);
+      });
     });
-  });
+    containerEl.querySelectorAll('.task-del-btn').forEach(btn=>{
+      btn.addEventListener('click',e=>{
+        e.stopPropagation();
+        deleteTaskItem(+e.currentTarget.dataset.tid,null,null,null,false,refresh);
+      });
+    });
+  }
+  renderList();
 }
 function actDur(a){
   if(a.end_time){const m=Math.round((new Date(a.end_time)-new Date(a.timestamp))/60000);return Math.max(1,m);}
@@ -1436,6 +1496,7 @@ async function renderDay(){
   const el=document.getElementById('content');
   if(!acts.length){
     el.innerHTML='<div class="empty-state">光よ、闇を照らせ！<br><span style="font-size:.75rem;opacity:.6">本日はまだ記録なし ·· No quests today</span></div>';
+    await renderTaskPanel(document.getElementById('task-panel'),'day',cur);
     return;
   }
 
@@ -1495,7 +1556,7 @@ async function renderDay(){
     ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px';
   });
   // task panel
-  await renderTaskSection(document.getElementById('task-panel'),'day',fd(cur));
+  await renderTaskPanel(document.getElementById('task-panel'),'day',cur);
 }
 
 /* ═══════════════════════════════
@@ -1590,7 +1651,7 @@ async function renderWeek(){
   el.querySelectorAll('textarea.act-detail-input').forEach(ta=>{
     ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px';
   });
-  await renderTaskSection(document.getElementById('task-panel'),'week',taskScopeDate('week',cur));
+  await renderTaskPanel(document.getElementById('task-panel'),'week',cur);
 }
 
 /* ═══════════════════════════════
@@ -1650,8 +1711,7 @@ async function renderMonth(){
 
   document.getElementById('content').innerHTML=calHtml;
   // task panel
-  const monthKey=`${cur.getFullYear()}-${p2(cur.getMonth()+1)}`;
-  await renderTaskSection(document.getElementById('task-panel'),'month',monthKey);
+  await renderTaskPanel(document.getElementById('task-panel'),'month',cur);
 }
 
 function drillDay(ds){cur=new Date(ds+'T00:00:00');setView('day');}
@@ -1768,10 +1828,11 @@ async function deleteAct(){
 async function saveDetail(input){
   const id=parseInt(input.dataset.id);
   const detail=input.value.trim()||null;
+  // 先更新缓存，防止 openEdit 在 PATCH 完成前读到旧值
+  if(window._dayActMap&&window._dayActMap[id]) window._dayActMap[id].detail=detail;
   await fetch(`/api/activities/${id}/detail`,{method:'PATCH',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({detail})});
-  if(window._dayActMap&&window._dayActMap[id]) window._dayActMap[id].detail=detail;
   input.classList.add('saved');
   setTimeout(()=>input.classList.remove('saved'),1500);
 }
@@ -2579,13 +2640,13 @@ async function _addTaskFromSettingsForm(){
 }
 
 // ── Delete task item ──────────────────────────────────
-async function deleteTaskItem(tid, containerEl, scope, scopeDate, fromTasksView){
+async function deleteTaskItem(tid, containerEl, scope, scopeDate, fromTasksView, onRefresh){
   if(!await customConfirm('删除该任务？','删除'))return;
   await api(`/api/tasks/${tid}`,{method:'DELETE'});
-  if(fromTasksView){
+  if(onRefresh){
+    await onRefresh();
+  } else if(fromTasksView){
     await renderTasksView();
-  } else if(containerEl && scope && scopeDate){
-    await renderTaskSection(containerEl, scope, scopeDate);
   } else {
     render();
   }
@@ -2669,7 +2730,7 @@ function _tvRenderList(){
     return;
   }
 
-  const SCOPE_COLORS={'day':'var(--crimson)','week':'var(--blue)','month':'var(--purple)'};
+  // SCOPE_COLORS is a global constant
   el.innerHTML=`<div class="row-cnt" style="margin-bottom:8px">${tasks.length} 条任务</div>`+
     tasks.map(t=>`
     <div class="task-settings-row" data-tid="${t.id}" style="cursor:pointer;${isDone?'opacity:.6':''}" title="${isDone?'已完成':'点击编辑'}">
@@ -2680,7 +2741,7 @@ function _tvRenderList(){
       <span class="task-meta" style="min-width:70px;flex-shrink:0">${t.scope_date||''}</span>
       ${!isDone?`<button class="task-check" data-tid="${t.id}" data-cat="${esc(t.category||'')}"
               data-topic="${esc(t.topic_name||'')}" data-title="${esc(t.title)}"
-              data-sd="${esc(t.scope_date||'')}" title="标记完成" style="opacity:1;flex-shrink:0">○</button>`:''}
+              data-sd="${esc(t.scope_date||'')}" title="标记完成" style="opacity:1;flex-shrink:0">🗡</button>`:''}
       <button class="task-del-btn" data-tid="${t.id}" style="opacity:1;flex-shrink:0">✕</button>
     </div>`).join('');
 
@@ -2708,12 +2769,16 @@ function _tvRenderList(){
 }
 
 // ── Open "add task" modal from dashboard ─────────────
-function openAddTask(scope, scopeDate){
+async function openAddTask(scope, scopeDate){
   _addTaskScope=scope;
   _addTaskScopeDate=scopeDate;
   document.querySelectorAll('#ta-scope-group .scope-btn').forEach(btn=>{
     btn.classList.toggle('active', btn.dataset.scope===scope);
   });
+  // 确保分类/主题数据已加载
+  if(!_allCats.length || !_allTopics.length){
+    [_allCats,_allTopics]=await Promise.all([api('/api/categories'),api('/api/focus_topics')]);
+  }
   // 填充分类
   const catSel=document.getElementById('ta-cat');
   catSel.innerHTML='<option value="">-- 不关联分类 --</option>'+
@@ -2753,6 +2818,7 @@ function openTaskComplete(tid, category, topic, title, scopeDate){
   document.getElementById('td-note').value=title;
 
   const now=new Date();
+  document.getElementById('td-date').value=fd(now);
   const h=now.getHours(), m=Math.floor(now.getMinutes()/5)*5;
   const endM=(m+IV)%60, endH=h+Math.floor((m+IV)/60);
 
@@ -2788,7 +2854,7 @@ async function submitTaskComplete(){
   if(!_completingTask)return;
   const {id,category}=_completingTask;
   const note=document.getElementById('td-note').value.trim()||_completingTask.title;
-  const todayStr=fd(new Date());
+  const todayStr=document.getElementById('td-date').value||fd(new Date());
   const sh=p2(parseInt(document.getElementById('td-sh').value)||0);
   const sm=p2(parseInt(document.getElementById('td-sm').value)||0);
   const eh=p2(parseInt(document.getElementById('td-eh').value)||0);
@@ -2807,9 +2873,14 @@ async function submitTaskComplete(){
 // ── Task edit modal ───────────────────────────────────
 let _onEditTaskSaved = null;  // callback after save
 
-function openEditTask(task, onSaved){
+async function openEditTask(task, onSaved){
   _editingTask = task;
   _onEditTaskSaved = onSaved || null;
+
+  // 确保分类/主题数据已加载（日/周/月视图下可能尚未加载）
+  if(!_allCats.length || !_allTopics.length){
+    [_allCats,_allTopics]=await Promise.all([api('/api/categories'),api('/api/focus_topics')]);
+  }
 
   // populate title
   document.getElementById('te-title').value = task.title || '';
