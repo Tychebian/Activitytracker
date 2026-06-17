@@ -8,7 +8,7 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 SRC="$SCRIPT_DIR/Sources"
 BUILD="$SCRIPT_DIR/build"
 APP_NAME="ActivityTracker"
-VERSION="2.2.0"
+VERSION="2.3.0"
 SDK="$(xcrun --show-sdk-path 2>/dev/null)"
 
 rm -rf "$BUILD"

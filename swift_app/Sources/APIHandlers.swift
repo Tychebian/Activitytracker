@@ -264,7 +264,9 @@ enum APIHandlers {
     }
     static func archiveTopic(_ r: Req) throws -> APIResponse {
         guard let id = r.ppInt("id") else { throw APIError.bad("id required") }
-        Database.shared.archiveTopic(id: id)
+        let summary = r.str("summary")
+        let review  = r.str("review")
+        Database.shared.archiveTopic(id: id, summary: summary, review: review)
         return try .json(["ok": true])
     }
     static func unarchiveTopic(_ r: Req) throws -> APIResponse {
@@ -407,6 +409,106 @@ enum APIHandlers {
         return .text(lines.joined(separator: "\n"))
     }
 
+    // ── /api/export_topic ─────────────────────────────────────
+    static func exportTopic(_ r: Req) throws -> APIResponse {
+        guard let topicName = r.q("topic"), !topicName.isEmpty else { throw APIError.bad("topic required") }
+        let iv = ConfigStore.shared.interval
+
+        guard let topicInfo = Database.shared.getTopicInfo(name: topicName) else {
+            throw APIError.notFound("topic not found")
+        }
+        let acts = Database.shared.getActivitiesByTopicAll(topicName: topicName)
+
+        func durMins(_ a: [String: Any]) -> Int {
+            if let et = a["end_time"] as? String,
+               let ts = a["timestamp"] as? String,
+               let endDate  = Database.date(from: et),
+               let startDate = Database.date(from: ts) {
+                return max(1, Int(endDate.timeIntervalSince(startDate) / 60))
+            }
+            return iv
+        }
+        func fmtDur(_ mins: Int) -> String {
+            if mins < 60 { return "\(mins)分钟" }
+            let h = mins/60, m = mins%60
+            return m > 0 ? "\(h)小时\(m)分钟" : "\(h)小时"
+        }
+        func fmtTime(_ ts: String) -> String { String(ts.dropFirst(11).prefix(5)) }
+
+        let category       = topicInfo["category"] as? String ?? ""
+        let priority       = topicInfo["priority"] as? String ?? "中"
+        let archived       = (topicInfo["archived"] as? Int ?? 0) == 1
+        let archiveSummary = topicInfo["archive_summary"] as? String ?? ""
+        let archiveReview  = topicInfo["archive_review"]  as? String ?? ""
+        let prioLabel      = ["高": "★高", "中": "◆中", "低": "▽低"]
+        let totalCnt       = acts.count
+        let totalMins      = acts.reduce(0) { $0 + durMins($1) }
+
+        var lines: [String] = [
+            "# ActivityTracker 主题导出",
+            "",
+            "**主题**：\(topicName)  ",
+            "**分类**：\(category)  ",
+            "**优先级**：\(prioLabel[priority] ?? priority)  ",
+            "**状态**：\(archived ? "已归档" : "进行中")  ",
+            "**活动记录**：共 \(totalCnt) 条 · 累计 \(fmtDur(totalMins))  ",
+            "**导出时间**：\(Database.isoNow().prefix(16).replacingOccurrences(of: "T", with: " "))",
+            "", "---", "",
+        ]
+
+        if archived && (!archiveSummary.isEmpty || !archiveReview.isEmpty) {
+            if !archiveSummary.isEmpty { lines += ["## 项目总结", "", archiveSummary, ""] }
+            if !archiveReview.isEmpty  { lines += ["## 复盘建议", "", archiveReview,  ""] }
+            lines += ["---", ""]
+        }
+
+        if acts.isEmpty {
+            lines.append("（该主题暂无活动记录）")
+            return .text(lines.joined(separator: "\n"))
+        }
+
+        lines += ["## 每日记录", ""]
+
+        var byDate = [String: [[String: Any]]]()
+        for a in acts {
+            guard let ts = a["timestamp"] as? String else { continue }
+            byDate[String(ts.prefix(10)), default: []].append(a)
+        }
+
+        let weekdayNames = ["一","二","三","四","五","六","日"]
+        func weekday(_ dateStr: String) -> String {
+            let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"
+            guard let d = f.date(from: dateStr) else { return "" }
+            let idx = Calendar.current.component(.weekday, from: d) - 2
+            return weekdayNames[(idx + 7) % 7]
+        }
+
+        for dateStr in byDate.keys.sorted() {
+            let dayActs = byDate[dateStr]!
+            let dayMins = dayActs.reduce(0) { $0 + durMins($1) }
+            lines.append("### \(dateStr)（周\(weekday(dateStr))）· \(dayActs.count)条 · \(fmtDur(dayMins))")
+            lines.append("")
+            for a in dayActs {
+                let ts = a["timestamp"] as? String ?? ""
+                let et = a["end_time"] as? String
+                let endStr: String
+                if let etStr = et { endStr = fmtTime(etStr) }
+                else {
+                    let calcEnd = (Database.date(from: ts) ?? Date()).addingTimeInterval(Double(iv)*60)
+                    let f = DateFormatter(); f.dateFormat = "HH:mm"
+                    endStr = "~\(f.string(from: calcEnd))"
+                }
+                var line = "- `\(fmtTime(ts))–\(endStr)`"
+                if let detail = a["detail"] as? String, !detail.isEmpty {
+                    line += "  \n  > \(detail)"
+                }
+                lines.append(line)
+            }
+            lines.append("")
+        }
+        return .text(lines.joined(separator: "\n"))
+    }
+
     // ── /api/tasks ────────────────────────────────────────────
     static func listTasks(_ r: Req) throws -> APIResponse {
         let scope    = r.q("scope")
@@ -459,6 +561,48 @@ enum APIHandlers {
         let actId = Database.shared.lastInsertRowID
         Database.shared.completeTask(id: id, activityId: actId)
         return try .json(["ok": true, "activity_id": actId])
+    }
+
+    // MARK: - Daily Plans
+
+    static func listDailyPlans(_ r: Req) throws -> APIResponse {
+        guard let date = r.q("date") else { throw APIError.bad("date required") }
+        return try .json(Database.shared.getDailyPlans(date: date))
+    }
+
+    static func createDailyPlan(_ r: Req) throws -> APIResponse {
+        guard let date      = r.str("date")       else { throw APIError.bad("date required") }
+        guard let startTime = r.str("start_time") else { throw APIError.bad("start_time required") }
+        guard let endTime   = r.str("end_time")   else { throw APIError.bad("end_time required") }
+        let category  = r.str("category")   ?? ""
+        let topicName = r.str("topic_name") ?? ""
+        let note      = r.str("note")       ?? ""
+        Database.shared.addDailyPlan(date: date, startTime: startTime, endTime: endTime,
+                                     category: category, topicName: topicName, note: note)
+        return try .json(["ok": true, "id": Database.shared.lastInsertRowID])
+    }
+
+    static func updateDailyPlan(_ r: Req) throws -> APIResponse {
+        guard let id        = r.ppInt("id")       else { throw APIError.bad("id required") }
+        guard let startTime = r.str("start_time") else { throw APIError.bad("start_time required") }
+        guard let endTime   = r.str("end_time")   else { throw APIError.bad("end_time required") }
+        let category  = r.str("category")   ?? ""
+        let topicName = r.str("topic_name") ?? ""
+        let note      = r.str("note")       ?? ""
+        Database.shared.updateDailyPlan(id: id, startTime: startTime, endTime: endTime,
+                                        category: category, topicName: topicName, note: note)
+        return try .json(["ok": true])
+    }
+
+    static func deleteDailyPlan(_ r: Req) throws -> APIResponse {
+        guard let id = r.ppInt("id") else { throw APIError.bad("id required") }
+        Database.shared.deleteDailyPlan(id: id)
+        return try .json(["ok": true])
+    }
+
+    static func listDayActivities(_ r: Req) throws -> APIResponse {
+        guard let date = r.q("date") else { throw APIError.bad("date required") }
+        return try .json(Database.shared.getActivitiesForDay(date: date))
     }
 
     // MARK: - Helpers

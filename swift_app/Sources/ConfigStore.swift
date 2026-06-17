@@ -13,7 +13,7 @@ private struct RawConfig: Codable {
 
 final class ConfigStore {
     static let shared = ConfigStore()
-    static let version = "2.0.0"
+    static let version = "2.3.0"
 
     private let path: URL = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent(".activity_tracker/config.json")

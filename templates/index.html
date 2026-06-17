@@ -585,6 +585,100 @@ body::before {
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: var(--parch); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ── 我的一天 ─────────────────────────────────── */
+.myday-header {
+  display:flex; align-items:center; gap:10px;
+  padding:14px 0 12px; position:sticky; top:0;
+  background:var(--parch); z-index:10; border-bottom:1px solid var(--border);
+  margin-bottom:0;
+}
+.myday-date-nav { display:flex; align-items:center; gap:6px; }
+.myday-date-label { font-size:1rem; font-weight:700; color:var(--ink); min-width:100px; }
+.myday-today-btn {
+  padding:3px 10px; border-radius:12px; border:1px solid var(--border);
+  background:var(--parch); color:var(--ink2); font-size:.78rem; cursor:pointer;
+}
+.myday-today-btn:hover { background:var(--border); }
+.myday-grid-wrap {
+  overflow-y:auto; max-height:calc(100vh - 130px);
+}
+.myday-grid {
+  display:grid;
+  grid-template-columns: 48px 1fr 1fr;
+  min-height:1080px; /* 18h × 60px */
+  position:relative;
+}
+.myday-col-header {
+  position:sticky; top:0; z-index:5;
+  display:grid; grid-template-columns:48px 1fr 1fr;
+  border-bottom:2px solid var(--border);
+  background:var(--parch);
+}
+.myday-col-header > div {
+  padding:8px 12px; font-size:.75rem; font-weight:700;
+  letter-spacing:.06em; color:var(--ink2);
+  text-transform:uppercase;
+}
+.myday-col-header > div:not(:first-child) { border-left:1px solid var(--border); }
+.myday-time-col {
+  grid-column:1; position:relative;
+}
+.myday-plan-col, .myday-actual-col {
+  position:relative; border-left:1px solid var(--border);
+}
+.myday-plan-col { cursor:crosshair; }
+.myday-hour-line {
+  position:absolute; left:0; right:0;
+  height:1px; background:var(--border); opacity:.5;
+  pointer-events:none;
+}
+.myday-hour-label {
+  position:absolute; left:0; right:0;
+  font-size:.68rem; color:var(--ink3);
+  text-align:right; padding-right:6px;
+  transform:translateY(-50%); pointer-events:none;
+}
+.myday-block {
+  position:absolute; left:3px; right:3px;
+  border-radius:5px; overflow:hidden;
+  font-size:.72rem; padding:4px 7px;
+  box-sizing:border-box; line-height:1.35;
+  cursor:pointer; user-select:none;
+  min-height:36px;
+}
+.myday-block-plan {
+  opacity:.85; border:1px solid rgba(0,0,0,.1);
+}
+.myday-block-actual {
+  opacity:.9; border:1px solid rgba(0,0,0,.08);
+}
+.myday-block-resize {
+  position:absolute; bottom:0; left:0; right:0;
+  height:6px; cursor:ns-resize; background:rgba(0,0,0,.12);
+}
+.myday-now-line {
+  position:absolute; left:0; right:0; height:2px;
+  background:var(--crimson); z-index:4; pointer-events:none;
+}
+.myday-now-dot {
+  position:absolute; left:-4px; top:-4px;
+  width:10px; height:10px; border-radius:50%;
+  background:var(--crimson);
+}
+.md-move-btn {
+  position:absolute; top:4px; right:22px;
+  padding:1px 5px; border-radius:3px; border:none;
+  background:rgba(0,0,0,.12); color:var(--ink2);
+  font-size:.62rem; cursor:pointer; white-space:nowrap;
+  line-height:1.5;
+}
+.md-move-btn:hover { background:rgba(0,0,0,.22); color:var(--ink); }
+.myday-gap-overlay {
+  position:absolute; left:3px; right:3px;
+  background:rgba(220,60,60,.08); border-left:2px solid rgba(220,60,60,.3);
+  border-radius:3px; pointer-events:none;
+}
 </style>
 </head>
 <body>
@@ -645,6 +739,7 @@ body::before {
     <button class="tab" id="tab-month"    onclick="setView('month')">按月</button>
     <button class="tab" id="tab-topic"    onclick="setView('topic')">按主题</button>
     <button class="tab" id="tab-tasks"    onclick="setView('tasks')">按任务</button>
+    <button class="tab" id="tab-myday"    onclick="setView('myday')">我的一天</button>
     <button class="tab" id="tab-settings" onclick="setView('settings')">⚙ 设置</button>
   </div>
 </div>
@@ -706,6 +801,9 @@ body::before {
   </div>
   <div id="tv-tasks-list"></div>
 </div>
+
+<!-- myday pane (hidden by default) -->
+<div id="myday-pane" style="display:none;padding:0 16px 24px"></div>
 
 <!-- settings pane (hidden by default) -->
 <div id="settings-pane" style="display:none">
@@ -838,6 +936,36 @@ body::before {
                background:var(--parch3);border:1px solid var(--border);border-radius:6px;
                padding:10px;color:var(--ink);resize:vertical;box-sizing:border-box;line-height:1.5">
       </textarea>
+    </div>
+
+    <!-- 导出主题 -->
+    <div style="margin-top:28px;padding-top:20px;border-top:1.5px dashed var(--border)">
+      <div class="section-title" style="margin-bottom:10px">导出主题</div>
+      <p style="color:var(--ink3);font-size:.72rem;margin-bottom:16px;line-height:1.6">
+        选择分类和主题，导出该主题下全部历史活动记录，<br>包含已归档主题及项目总结，可直接给 AI 做分析。
+      </p>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
+        <label style="font-size:.78rem;color:var(--ink2)">分类</label>
+        <select id="topic-export-cat" class="m-input" style="margin:0;width:160px;padding:5px 8px">
+          <option value="">加载中…</option>
+        </select>
+        <label style="font-size:.78rem;color:var(--ink2)">主题</label>
+        <select id="topic-export-topic" class="m-input" style="margin:0;width:160px;padding:5px 8px" disabled>
+          <option value="">请先选择分类</option>
+        </select>
+        <button id="topic-export-btn" class="btn-save" style="padding:6px 16px" onclick="generateTopicExport()">生成</button>
+      </div>
+      <div id="topic-export-result" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span id="topic-export-info" style="font-size:.72rem;color:var(--ink3)"></span>
+          <button class="btn-save" style="padding:5px 14px;font-size:.78rem" onclick="copyTopicExport()">📋 复制全文</button>
+        </div>
+        <textarea id="topic-export-text" readonly
+          style="width:100%;height:280px;font-size:.72rem;font-family:var(--font-mono);
+                 background:var(--parch3);border:1px solid var(--border);border-radius:6px;
+                 padding:10px;color:var(--ink);resize:vertical;box-sizing:border-box;line-height:1.5">
+        </textarea>
+      </div>
     </div>
   </div>
 
@@ -1038,6 +1166,37 @@ body::before {
 </div>
 
 <!-- ═══════════════════════════════
+     MY DAY PLAN MODAL
+     ═══════════════════════════════ -->
+<div id="mdplan-overlay" class="overlay">
+  <div class="mbox" style="width:380px">
+    <div class="mbox-title" id="mdplan-title">📋 新增计划时间块</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <div>
+        <label style="font-size:.72rem;color:var(--ink3);letter-spacing:.06em;display:block;margin-bottom:4px">开始时间</label>
+        <input id="mdp-start" class="m-input" type="time" style="margin:0;width:100%"/>
+      </div>
+      <div>
+        <label style="font-size:.72rem;color:var(--ink3);letter-spacing:.06em;display:block;margin-bottom:4px">结束时间</label>
+        <input id="mdp-end" class="m-input" type="time" style="margin:0;width:100%"/>
+      </div>
+    </div>
+    <label style="font-size:.72rem;color:var(--ink3);letter-spacing:.06em;display:block;margin-bottom:4px">分类</label>
+    <select id="mdp-cat" class="m-input" style="margin:0 0 12px;width:100%"></select>
+    <label style="font-size:.72rem;color:var(--ink3);letter-spacing:.06em;display:block;margin-bottom:4px">主题</label>
+    <select id="mdp-topic" class="m-input" style="margin:0 0 12px;width:100%" disabled></select>
+    <label style="font-size:.72rem;color:var(--ink3);letter-spacing:.06em;display:block;margin-bottom:4px">备注（可选）</label>
+    <input id="mdp-note" class="m-input" type="text" placeholder="做什么…" style="margin:0 0 16px"/>
+    <div class="m-btn-row">
+      <button class="btn-cancel" id="mdplan-delete" style="display:none;color:var(--crimson)">删除</button>
+      <div style="flex:1"></div>
+      <button class="btn-cancel" id="mdplan-cancel">取消</button>
+      <button class="btn-save" id="mdplan-save">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
      TASK EDIT MODAL
      ═══════════════════════════════ -->
 <div id="task-edit-overlay" class="overlay">
@@ -1098,6 +1257,42 @@ body::before {
   </div>
 </div>
 
+<!-- ═══════════════════════════════
+     ARCHIVE SUMMARY MODAL
+     ═══════════════════════════════ -->
+<div id="archive-summary-overlay"
+     style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);
+            z-index:400;align-items:center;justify-content:center">
+  <div style="background:var(--parch);border-radius:10px;padding:24px 28px;
+              max-width:440px;width:92%;box-shadow:0 8px 32px rgba(0,0,0,.25)">
+    <div style="font-size:.92rem;font-weight:700;color:var(--ink);margin-bottom:4px">📦 归档主题</div>
+    <div id="archive-summary-topic-name"
+         style="font-size:.8rem;color:var(--ink3);margin-bottom:18px"></div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:.72rem;font-weight:700;letter-spacing:.05em;color:var(--ink2);margin-bottom:5px">
+        项目成果总结 <span style="font-weight:400;color:var(--ink3)">（可选）</span>
+      </div>
+      <textarea id="archive-summary-text" class="m-input"
+                style="margin:0;width:100%;height:90px;resize:vertical;font-size:.8rem;
+                       padding:8px 10px;box-sizing:border-box"
+                placeholder="简短描述该项目的最终结果、达成目标、主要产出…"></textarea>
+    </div>
+    <div style="margin-bottom:20px">
+      <div style="font-size:.72rem;font-weight:700;letter-spacing:.05em;color:var(--ink2);margin-bottom:5px">
+        复盘建议 <span style="font-weight:400;color:var(--ink3)">（可选）</span>
+      </div>
+      <textarea id="archive-review-text" class="m-input"
+                style="margin:0;width:100%;height:80px;resize:vertical;font-size:.8rem;
+                       padding:8px 10px;box-sizing:border-box"
+                placeholder="下次做类似项目时的改进方向、值得记住的经验教训…"></textarea>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:10px">
+      <button class="btn-cancel" onclick="closeArchiveSummaryModal()">取消</button>
+      <button class="btn-save" onclick="confirmArchiveTopic()">确认归档</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ═══════════════════════════════
    STATE
@@ -1114,6 +1309,8 @@ let _addTaskScope='day', _addTaskScopeDate='';
 let _editingTask=null;     // full task object being edited
 let _topicDetailName=null; // null = topic list view; string = timeline for that topic
 let _filterCat=null;      // null = show all; string = only this category
+let _archivePendingId=null, _archivePendingName=null;
+let _exportAllTopics=[];
 
 const PALETTE=[
   "#c8320a","#1a5fa3","#6b1a8a","#b07a10","#c83264",
@@ -1311,11 +1508,12 @@ function setView(v){
   view=v;
   if(v!=='topic') _topicDetailName=null;
   _filterCat=null;
-  const isSets  = v==='settings';
-  const isTopic = v==='topic';
-  const isTasks = v==='tasks';
-  const isTimeView = !isSets && !isTopic && !isTasks;
-  ['day','week','month','topic','tasks','settings'].forEach(x=>{
+  const isSets   = v==='settings';
+  const isTopic  = v==='topic';
+  const isTasks  = v==='tasks';
+  const isMyDay  = v==='myday';
+  const isTimeView = !isSets && !isTopic && !isTasks && !isMyDay;
+  ['day','week','month','topic','tasks','myday','settings'].forEach(x=>{
     document.getElementById('tab-'+x).className='tab'+(x===v?' on':'');
   });
   // nav-row / manual-add-row / cat-summary / goals-panel: 仅在 day/week/month 显示
@@ -1323,14 +1521,16 @@ function setView(v){
     const e=document.getElementById(id);
     if(e) e.style.display=isTimeView?'':'none';
   });
-  document.getElementById('content').style.display=(isSets||isTasks)?'none':'';
+  document.getElementById('content').style.display=(isSets||isTasks||isMyDay)?'none':'';
   document.getElementById('settings-pane').style.display=isSets?'block':'none';
   document.getElementById('tasks-pane').style.display=isTasks?'block':'none';
+  document.getElementById('myday-pane').style.display=isMyDay?'block':'none';
   // task-panel visible only for day/week/month
   const tp=document.getElementById('task-panel');
   if(tp){ tp.style.display=isTimeView?'':'none'; if(!isTimeView) tp.innerHTML=''; }
   if(isSets){ renderSTab1(); renderCatsTopics(); }
   else if(isTasks){ renderTasksView(); }
+  else if(isMyDay){ renderMyDay(); }
   else render();
 }
 function nav(dir){
@@ -1895,7 +2095,7 @@ function switchSTab(tab){
   if(tab==='cats')   _renderCatSettings();
   else if(tab==='topics') _renderTopicSettings();
   else if(tab==='tasks')  _renderTaskSettings();
-  else if(tab==='export') initExportDates();
+  else if(tab==='export') { initExportDates(); initTopicExportDropdowns(); }
   else if(tab==='life')   _renderLifeArchive();
 }
 
@@ -2185,6 +2385,76 @@ async function copyExport(){
     setTimeout(()=>{btn.textContent='📋 复制全文';},1800);
   }catch{
     document.getElementById('export-text').select();
+    document.execCommand('copy');
+  }
+}
+
+/* ═══════════════════════════════
+   TOPIC EXPORT
+   ═══════════════════════════════ */
+async function initTopicExportDropdowns(){
+  let cats=[], activeTopics=[], archivedTopics=[];
+  try{
+    [cats, activeTopics, archivedTopics] = await Promise.all([
+      api('/api/categories'),
+      api('/api/focus_topics'),
+      api('/api/focus_topics/archived')
+    ]);
+  }catch(_){}
+  _exportAllTopics=[
+    ...activeTopics.map(t=>({...t,isArchived:false})),
+    ...archivedTopics.map(t=>({...t,isArchived:true}))
+  ];
+  const catSel=document.getElementById('topic-export-cat');
+  if(!catSel) return;
+  catSel.innerHTML='<option value="">选择分类…</option>'+
+    cats.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+  catSel.onchange=updateTopicExportTopicDropdown;
+  updateTopicExportTopicDropdown();
+}
+function updateTopicExportTopicDropdown(){
+  const cat=document.getElementById('topic-export-cat').value;
+  const topicSel=document.getElementById('topic-export-topic');
+  if(!cat){
+    topicSel.innerHTML='<option value="">请先选择分类</option>';
+    topicSel.disabled=true;
+    return;
+  }
+  const catTopics=_exportAllTopics.filter(t=>(t.category||'')===cat);
+  if(!catTopics.length){
+    topicSel.innerHTML='<option value="">该分类下暂无主题</option>';
+    topicSel.disabled=true;
+    return;
+  }
+  topicSel.innerHTML='<option value="">选择主题…</option>'+
+    catTopics.map(t=>`<option value="${esc(t.name)}">${esc(t.name)}${t.isArchived?' [已归档]':''}</option>`).join('');
+  topicSel.disabled=false;
+}
+async function generateTopicExport(){
+  const topic=document.getElementById('topic-export-topic').value;
+  if(!topic){await customAlert('请先选择主题');return;}
+  const btn=document.getElementById('topic-export-btn');
+  if(btn){btn.textContent='生成中…';btn.disabled=true;}
+  try{
+    const resp=await fetch(`/api/export_topic?topic=${encodeURIComponent(topic)}`);
+    const text=await resp.text();
+    document.getElementById('topic-export-text').value=text;
+    document.getElementById('topic-export-info').textContent=`${text.split('\n').length} 行 · ${text.length} 字符`;
+    document.getElementById('topic-export-result').style.display='block';
+  }finally{
+    if(btn){btn.textContent='生成';btn.disabled=false;}
+  }
+}
+async function copyTopicExport(){
+  const text=document.getElementById('topic-export-text').value;
+  if(!text)return;
+  try{
+    await navigator.clipboard.writeText(text);
+    const btn=event.target;
+    btn.textContent='✓ 已复制';
+    setTimeout(()=>{btn.textContent='📋 复制全文';},1800);
+  }catch{
+    document.getElementById('topic-export-text').select();
     document.execCommand('copy');
   }
 }
@@ -2514,9 +2784,31 @@ async function _saveGoals(){
 /* ═══════════════════════════════
    TOPIC ARCHIVE
    ═══════════════════════════════ */
-async function archiveTopic(id, name){
-  if(!await _confirm(`将「${name}」移入归档？\n归档后不再出现在选项列表中，历史条目保留。`,'确认归档')) return;
-  await fetch(`/api/focus_topics/${id}/archive`,{method:'POST'});
+function archiveTopic(id, name){
+  _archivePendingId=id;
+  _archivePendingName=name;
+  document.getElementById('archive-summary-topic-name').textContent=`即将归档：${name}`;
+  document.getElementById('archive-summary-text').value='';
+  document.getElementById('archive-review-text').value='';
+  document.getElementById('archive-summary-overlay').style.display='flex';
+}
+function closeArchiveSummaryModal(){
+  document.getElementById('archive-summary-overlay').style.display='none';
+  _archivePendingId=null;
+  _archivePendingName=null;
+}
+async function confirmArchiveTopic(){
+  if(!_archivePendingId) return;
+  const id=_archivePendingId;
+  const summary=document.getElementById('archive-summary-text').value.trim()||null;
+  const review =document.getElementById('archive-review-text').value.trim()||null;
+  document.getElementById('archive-summary-overlay').style.display='none';
+  _archivePendingId=null; _archivePendingName=null;
+  await fetch(`/api/focus_topics/${id}/archive`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({summary,review})
+  });
   await _reloadTopics();
   _renderTopicSettings();
 }
@@ -2653,6 +2945,368 @@ async function deleteTaskItem(tid, containerEl, scope, scopeDate, fromTasksView,
 }
 
 // ── Tasks view (按任务 tab) ────────────────────────────
+// ══════════════════════════════════════════════════════
+//  我的一天
+// ══════════════════════════════════════════════════════
+let _mydayDate = fd(new Date());  // YYYY-MM-DD
+let _mydayPlans = [];
+let _mydayActuals = [];
+// drag-to-create state
+let _mdDrag = null; // {startY, startMin, colEl}
+// resize state
+let _mdResize = null; // {planId, blockEl, origEnd, startY}
+
+const PX_PER_MIN = 1;     // 1px per minute
+const DAY_START_H = 6;    // 06:00 shown at top
+const DAY_HOURS   = 18;   // 06:00 → 24:00
+
+function mdMinToY(hhmm){
+  const [h,m]=hhmm.split(':').map(Number);
+  return ((h*60+m) - DAY_START_H*60) * PX_PER_MIN;
+}
+function mdYToMin(y){
+  const raw = Math.round(y / PX_PER_MIN) + DAY_START_H*60;
+  return Math.max(DAY_START_H*60, Math.min(24*60-15, Math.round(raw/5)*5));
+}
+function mdMinToHHMM(totalMin){
+  return p2(Math.floor(totalMin/60))+':'+p2(totalMin%60);
+}
+function mdHHMMtoMin(hhmm){
+  const [h,m]=hhmm.split(':').map(Number); return h*60+m;
+}
+function mdBlockH(start,end){
+  return Math.max(36, (mdHHMMtoMin(end)-mdHHMMtoMin(start)) * PX_PER_MIN);
+}
+
+async function renderMyDay(){
+  const pane = document.getElementById('myday-pane');
+
+  // ensure categories loaded
+  if(!_allCats.length) _allCats = await api('/api/categories');
+
+  // load data
+  [_mydayPlans, _mydayActuals] = await Promise.all([
+    api('/api/daily_plans?date='+_mydayDate),
+    api('/api/day_activities?date='+_mydayDate)
+  ]);
+
+  const isToday = _mydayDate === fd(new Date());
+  const dateObj = new Date(_mydayDate+'T12:00:00');
+  const dayLabel = dateObj.toLocaleDateString('zh-CN',{month:'long',day:'numeric',weekday:'short'});
+
+  pane.innerHTML = `
+    <div class="myday-header">
+      <div class="myday-date-nav">
+        <button class="nav-btn" onclick="mdNav(-1)">&#8249;</button>
+        <span class="myday-date-label">${dayLabel}</span>
+        <button class="nav-btn" onclick="mdNav(1)">&#8250;</button>
+      </div>
+      ${!isToday?`<button class="myday-today-btn" onclick="mdGoToday()">今天</button>`:''}
+    </div>
+    <div style="display:grid;grid-template-columns:48px 1fr 1fr;border-bottom:2px solid var(--border);background:var(--parch);position:sticky;top:57px;z-index:9">
+      <div></div>
+      <div style="padding:7px 12px;font-size:.72rem;font-weight:700;letter-spacing:.06em;color:var(--ink2);border-left:1px solid var(--border)">📋 计划</div>
+      <div style="padding:7px 12px;font-size:.72rem;font-weight:700;letter-spacing:.06em;color:var(--ink2);border-left:1px solid var(--border)">✓ 实际</div>
+    </div>
+    <div class="myday-grid-wrap" id="myday-scroll">
+      <div class="myday-grid" id="myday-grid" style="height:${DAY_HOURS*60*PX_PER_MIN}px">
+        <div class="myday-time-col" id="myday-time"></div>
+        <div class="myday-plan-col" id="myday-plan-col"></div>
+        <div class="myday-actual-col" id="myday-actual-col"></div>
+      </div>
+    </div>`;
+
+  _mdRenderGrid();
+  _mdRenderPlans();
+  _mdRenderActuals();
+  if(isToday) _mdRenderNowLine();
+  _mdBindPlanCol();
+
+  // scroll to 8am on load
+  const scroll = document.getElementById('myday-scroll');
+  if(scroll) scroll.scrollTop = (8 - DAY_START_H) * 60 * PX_PER_MIN - 20;
+}
+
+function _mdRenderGrid(){
+  const timeCol = document.getElementById('myday-time');
+  const planCol = document.getElementById('myday-plan-col');
+  const actCol  = document.getElementById('myday-actual-col');
+  let html = '';
+  for(let h=DAY_START_H; h<=DAY_START_H+DAY_HOURS; h++){
+    const y = (h - DAY_START_H) * 60 * PX_PER_MIN;
+    html += `<div class="myday-hour-label" style="top:${y}px">${p2(h)}:00</div>`;
+    [planCol, actCol].forEach(col=>{
+      const line = document.createElement('div');
+      line.className = 'myday-hour-line';
+      line.style.top = y+'px';
+      col.appendChild(line);
+    });
+  }
+  timeCol.innerHTML = html;
+}
+
+function _mdRenderPlans(){
+  const col = document.getElementById('myday-plan-col');
+  col.querySelectorAll('.myday-block-plan,.myday-gap-overlay').forEach(e=>e.remove());
+
+  // compute covered minutes from actuals for gap detection
+  const covered = new Set();
+  _mydayActuals.forEach(a=>{
+    const s = mdHHMMtoMin(a.timestamp.slice(11,16));
+    const e = a.end_time ? mdHHMMtoMin(a.end_time.slice(11,16)) : s+15;
+    for(let m=s;m<e;m++) covered.add(m);
+  });
+
+  _mydayPlans.forEach(p=>{
+    const top = mdMinToY(p.start_time);
+    const h   = mdBlockH(p.start_time, p.end_time);
+    const color = cc(p.category) || 'var(--gold)';
+    const block = document.createElement('div');
+    block.className = 'myday-block myday-block-plan';
+    block.style.cssText = `top:${top}px;height:${h}px;background:${color}22;border-left:3px solid ${color};color:var(--ink)`;
+    const planNote = p.note ? `<div style="font-size:.65rem;opacity:.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(p.note)}</div>` : '';
+    block.innerHTML = `
+      <button class="md-move-btn" title="移入实际" data-pid="${p.id}">→实际</button>
+      <div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${color};padding-right:42px">${esc(p.topic_name||p.note||'（未填主题）')}</div>
+      ${p.topic_name ? planNote : ''}
+      <div style="font-size:.65rem;color:var(--ink3);margin-top:1px">${p.start_time}–${p.end_time}</div>
+      <div class="myday-block-resize" data-pid="${p.id}"></div>`;
+    block.addEventListener('click', e=>{
+      if(e.target.closest('.myday-block-resize,.md-move-btn')) return;
+      mdEditPlan(p);
+    });
+    block.querySelector('.md-move-btn').addEventListener('click', e=>{
+      e.stopPropagation();
+      mdMovePlanToActual(p);
+    });
+    // gap overlay: find uncovered ranges within this plan block
+    const ps = mdHHMMtoMin(p.start_time);
+    const pe = mdHHMMtoMin(p.end_time);
+    let gapStart = null;
+    for(let m=ps; m<=pe; m++){
+      const isCov = covered.has(m);
+      if(!isCov && gapStart===null) gapStart=m;
+      if((isCov||m===pe) && gapStart!==null){
+        const gy = mdMinToY(mdMinToHHMM(gapStart));
+        const gh = Math.max(4,(m-gapStart)*PX_PER_MIN);
+        const gap = document.createElement('div');
+        gap.className='myday-gap-overlay';
+        gap.style.cssText=`top:${gy}px;height:${gh}px`;
+        col.appendChild(gap);
+        gapStart=null;
+      }
+    }
+    col.appendChild(block);
+    // resize
+    block.querySelector('.myday-block-resize').addEventListener('mousedown', e=>{
+      e.stopPropagation();
+      _mdResize = {planId:p.id, blockEl:block, origEnd:p.end_time,
+                   startY:e.clientY, startMin:mdHHMMtoMin(p.end_time),
+                   blockStartMin:mdHHMMtoMin(p.start_time)};
+    });
+  });
+}
+
+function _mdRenderActuals(){
+  const col = document.getElementById('myday-actual-col');
+  col.querySelectorAll('.myday-block-actual').forEach(e=>e.remove());
+  _mydayActuals.forEach(a=>{
+    const startHHMM = a.timestamp.slice(11,16);
+    const endHHMM   = a.end_time ? a.end_time.slice(11,16) : mdMinToHHMM(mdHHMMtoMin(startHHMM)+15);
+    const top  = mdMinToY(startHHMM);
+    const h    = mdBlockH(startHHMM, endHHMM);
+    const color = cc(a.category) || 'var(--gold)';
+    const block = document.createElement('div');
+    block.className = 'myday-block myday-block-actual';
+    block.style.cssText = `top:${top}px;height:${h}px;background:${color}33;border-left:3px solid ${color};color:var(--ink)`;
+    const detail = a.detail ? `<div style="font-size:.65rem;opacity:.75;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(a.detail)}</div>` : '';
+    block.innerHTML = `
+      <div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:${color}">${esc(a.note)}</div>
+      ${detail}
+      <div style="font-size:.65rem;color:var(--ink3);margin-top:1px">${startHHMM}–${endHHMM}</div>`;
+    col.appendChild(block);
+  });
+}
+
+function _mdRenderNowLine(){
+  const col = document.getElementById('myday-plan-col');
+  const now = new Date();
+  const min = now.getHours()*60+now.getMinutes();
+  const y   = mdMinToY(p2(now.getHours())+':'+p2(now.getMinutes()));
+  if(y < 0 || y > DAY_HOURS*60*PX_PER_MIN) return;
+  const grid = document.getElementById('myday-grid');
+  const line = document.createElement('div');
+  line.className='myday-now-line';
+  line.style.cssText=`top:${y}px;grid-column:2/4;position:absolute;left:48px;right:0`;
+  line.innerHTML='<div class="myday-now-dot"></div>';
+  grid.appendChild(line);
+}
+
+function _mdBindPlanCol(){
+  const col = document.getElementById('myday-plan-col');
+  col.addEventListener('mousedown', e=>{
+    if(e.target.closest('.myday-block')) return;
+    const rect = col.getBoundingClientRect();
+    const scroll = document.getElementById('myday-scroll');
+    const y = e.clientY - rect.top + scroll.scrollTop;
+    const startMin = mdYToMin(y);
+    _mdDrag = {startMin, startY: e.clientY, col, endMin: startMin+30};
+    // temp block
+    const tmp = document.createElement('div');
+    tmp.id='md-tmp-block';
+    tmp.className='myday-block myday-block-plan';
+    tmp.style.cssText=`top:${mdMinToY(mdMinToHHMM(startMin))}px;height:${30*PX_PER_MIN}px;background:var(--border);opacity:.5;pointer-events:none`;
+    col.appendChild(tmp);
+  });
+
+  window.addEventListener('mousemove', e=>{
+    if(_mdDrag){
+      const col2 = _mdDrag.col;
+      const rect = col2.getBoundingClientRect();
+      const scroll = document.getElementById('myday-scroll');
+      if(!scroll) return;
+      const y = e.clientY - rect.top + scroll.scrollTop;
+      const curMin = mdYToMin(y);
+      const s = Math.min(_mdDrag.startMin, curMin);
+      const en= Math.max(_mdDrag.startMin+15, curMin);
+      _mdDrag.endMin = en;
+      const tmp = document.getElementById('md-tmp-block');
+      if(tmp){
+        tmp.style.top = mdMinToY(mdMinToHHMM(s))+'px';
+        tmp.style.height = ((en-s)*PX_PER_MIN)+'px';
+      }
+    }
+    if(_mdResize){
+      const dy = e.clientY - _mdResize.startY;
+      const newEndMin = Math.max(_mdResize.startMin+15,
+        Math.round((_mdResize.startMin + dy/PX_PER_MIN)/5)*5);
+      _mdResize.blockEl.style.height = ((newEndMin - _mdResize.blockStartMin)*PX_PER_MIN)+'px';
+      _mdResize.curEndMin = newEndMin;
+    }
+  });
+
+  window.addEventListener('mouseup', async e=>{
+    if(_mdDrag){
+      const {startMin, endMin} = _mdDrag;
+      document.getElementById('md-tmp-block')?.remove();
+      _mdDrag = null;
+      if(endMin - startMin >= 10){
+        await mdOpenAddPlan(mdMinToHHMM(Math.min(startMin,endMin)),
+                            mdMinToHHMM(Math.max(startMin,endMin)));
+      }
+    }
+    if(_mdResize){
+      const p = _mydayPlans.find(x=>x.id===_mdResize.planId);
+      if(p && _mdResize.curEndMin){
+        const newEnd = mdMinToHHMM(_mdResize.curEndMin);
+        await api(`/api/daily_plans/${p.id}`,{method:'PUT',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({start_time:p.start_time,end_time:newEnd,
+            category:p.category,note:p.note})});
+        _mydayPlans = await api('/api/daily_plans?date='+_mydayDate);
+        _mdRenderPlans();
+      }
+      _mdResize = null;
+    }
+  });
+}
+
+let _mdPlanResolve = null;
+
+function _mdFillTopicSel(category, selectedTopic=''){
+  const topicSel = document.getElementById('mdp-topic');
+  const topics = (_allTopics||[]).filter(t=>!t.archived && (t.category||'')===category);
+  if(!category || !topics.length){
+    topicSel.innerHTML = '<option value="">-- 该分类暂无主题 --</option>';
+    topicSel.disabled = true;
+  } else {
+    topicSel.innerHTML = '<option value="">-- 不关联主题 --</option>' +
+      topics.map(t=>`<option value="${esc(t.name)}"${t.name===selectedTopic?' selected':''}>${esc(t.name)}</option>`).join('');
+    topicSel.disabled = false;
+  }
+}
+
+function _mdOpenPlanModal({title, startHHMM, endHHMM, category='', topicName='', note='', showDelete=false}){
+  if(!_allCats.length) return Promise.resolve(null);
+  const cats = _allCats.map(c=>c.name||c);
+  document.getElementById('mdplan-title').textContent = title;
+  document.getElementById('mdp-start').value = startHHMM;
+  document.getElementById('mdp-end').value   = endHHMM;
+  document.getElementById('mdp-note').value  = note;
+  const catSel = document.getElementById('mdp-cat');
+  catSel.innerHTML = cats.map(c=>`<option value="${esc(c)}"${c===category?' selected':''}>${esc(c)}</option>`).join('');
+  _mdFillTopicSel(category, topicName);
+  document.getElementById('mdplan-delete').style.display = showDelete ? '' : 'none';
+  document.getElementById('mdplan-overlay').classList.add('open');
+  return new Promise(resolve=>{ _mdPlanResolve = resolve; });
+}
+
+async function mdOpenAddPlan(startHHMM, endHHMM){
+  if(!_allCats.length || !_allTopics.length)
+    [_allCats,_allTopics] = await Promise.all([api('/api/categories'),api('/api/focus_topics')]);
+  const result = await _mdOpenPlanModal({title:'📋 新增计划时间块', startHHMM, endHHMM,
+    category: _allCats.length ? (_allCats[0].name||'') : ''});
+  if(!result) return;
+  await api('/api/daily_plans',{method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({date:_mydayDate,start_time:result.start,end_time:result.end,
+      category:result.category,topic_name:result.topic_name,note:result.note})});
+  _mydayPlans = await api('/api/daily_plans?date='+_mydayDate);
+  _mdRenderPlans();
+}
+
+async function mdEditPlan(p){
+  if(!_allCats.length || !_allTopics.length)
+    [_allCats,_allTopics] = await Promise.all([api('/api/categories'),api('/api/focus_topics')]);
+  const result = await _mdOpenPlanModal({title:'✎ 编辑计划时间块',
+    startHHMM:p.start_time, endHHMM:p.end_time,
+    category:p.category, topicName:p.topic_name||'', note:p.note, showDelete:true});
+  if(!result) return;
+  if(result.delete){
+    await api(`/api/daily_plans/${p.id}`,{method:'DELETE'});
+  } else {
+    await api(`/api/daily_plans/${p.id}`,{method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({start_time:result.start,end_time:result.end,
+        category:result.category,topic_name:result.topic_name,note:result.note})});
+  }
+  _mydayPlans = await api('/api/daily_plans?date='+_mydayDate);
+  _mdRenderPlans();
+}
+
+async function mdMovePlanToActual(p){
+  try{
+    await api('/api/activities/add_manual',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        date:     p.date,
+        time:     p.start_time,
+        end_time: `${p.date}T${p.end_time}:00`,
+        category: p.category,
+        note:     p.topic_name || p.note || p.category,
+        detail:   p.topic_name ? p.note : null
+      })});
+    await api(`/api/daily_plans/${p.id}`,{method:'DELETE'});
+    [_mydayPlans, _mydayActuals] = await Promise.all([
+      api('/api/daily_plans?date='+_mydayDate),
+      api('/api/day_activities?date='+_mydayDate)
+    ]);
+    _mdRenderPlans();
+    _mdRenderActuals();
+  }catch(e){ await customAlert('操作失败：'+e.message); }
+}
+
+function mdNav(dir){
+  const d = new Date(_mydayDate+'T12:00:00');
+  d.setDate(d.getDate()+dir);
+  _mydayDate = fd(d);
+  renderMyDay();
+}
+function mdGoToday(){
+  _mydayDate = fd(new Date());
+  renderMyDay();
+}
+
 let _tvAllTasks = [];
 
 async function renderTasksView(){
@@ -3009,6 +3663,32 @@ async function submitEditTask(){
   });
   document.getElementById('td-cancel').addEventListener('click',closeTaskDone);
   document.getElementById('td-save').addEventListener('click',submitTaskComplete);
+
+  // myday plan modal
+  document.getElementById('mdplan-cancel').addEventListener('click',()=>{
+    document.getElementById('mdplan-overlay').classList.remove('open');
+    if(_mdPlanResolve){ _mdPlanResolve(null); _mdPlanResolve=null; }
+  });
+  document.getElementById('mdp-cat').addEventListener('change', function(){
+    _mdFillTopicSel(this.value);
+  });
+  document.getElementById('mdplan-save').addEventListener('click',()=>{
+    document.getElementById('mdplan-overlay').classList.remove('open');
+    if(_mdPlanResolve){
+      _mdPlanResolve({
+        start:      document.getElementById('mdp-start').value,
+        end:        document.getElementById('mdp-end').value,
+        category:   document.getElementById('mdp-cat').value,
+        topic_name: document.getElementById('mdp-topic').value,
+        note:       document.getElementById('mdp-note').value.trim()
+      });
+      _mdPlanResolve=null;
+    }
+  });
+  document.getElementById('mdplan-delete').addEventListener('click',()=>{
+    document.getElementById('mdplan-overlay').classList.remove('open');
+    if(_mdPlanResolve){ _mdPlanResolve({delete:true}); _mdPlanResolve=null; }
+  });
 
   // task-edit overlay
   document.getElementById('te-cancel').addEventListener('click',closeEditTask);

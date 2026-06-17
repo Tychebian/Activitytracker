@@ -60,7 +60,9 @@ final class Database {
         let ftCols = columnNames(table: "focus_topics")
         if !ftCols.contains("category") { exec("ALTER TABLE focus_topics ADD COLUMN category TEXT NOT NULL DEFAULT ''") }
         if !ftCols.contains("priority") { exec("ALTER TABLE focus_topics ADD COLUMN priority TEXT NOT NULL DEFAULT '中'") }
-        if !ftCols.contains("archived") { exec("ALTER TABLE focus_topics ADD COLUMN archived INTEGER NOT NULL DEFAULT 0") }
+        if !ftCols.contains("archived")         { exec("ALTER TABLE focus_topics ADD COLUMN archived INTEGER NOT NULL DEFAULT 0") }
+        if !ftCols.contains("archive_summary") { exec("ALTER TABLE focus_topics ADD COLUMN archive_summary TEXT") }
+        if !ftCols.contains("archive_review")  { exec("ALTER TABLE focus_topics ADD COLUMN archive_review TEXT") }
 
         exec("""
             CREATE TABLE IF NOT EXISTS period_goals (
@@ -94,6 +96,49 @@ final class Database {
                 activity_id INTEGER
             )
         """)
+        exec("""
+            CREATE TABLE IF NOT EXISTS daily_plans (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                date       TEXT NOT NULL,
+                start_time TEXT NOT NULL,
+                end_time   TEXT NOT NULL,
+                category   TEXT NOT NULL DEFAULT '',
+                topic_name TEXT NOT NULL DEFAULT '',
+                note       TEXT NOT NULL DEFAULT '',
+                created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+            )
+        """)
+        let dpCols = columnNames(table: "daily_plans")
+        if !dpCols.contains("topic_name") { exec("ALTER TABLE daily_plans ADD COLUMN topic_name TEXT NOT NULL DEFAULT ''") }
+    }
+
+    // MARK: - Daily Plans
+
+    func getDailyPlans(date: String) -> [[String: Any]] {
+        query("SELECT * FROM daily_plans WHERE date=? ORDER BY start_time", params: [.text(date)])
+    }
+
+    func addDailyPlan(date: String, startTime: String, endTime: String, category: String, topicName: String, note: String) {
+        exec("INSERT INTO daily_plans (date,start_time,end_time,category,topic_name,note) VALUES (?,?,?,?,?,?)",
+             params: [.text(date), .text(startTime), .text(endTime), .text(category), .text(topicName), .text(note)])
+    }
+
+    func updateDailyPlan(id: Int, startTime: String, endTime: String, category: String, topicName: String, note: String) {
+        exec("UPDATE daily_plans SET start_time=?,end_time=?,category=?,topic_name=?,note=? WHERE id=?",
+             params: [.text(startTime), .text(endTime), .text(category), .text(topicName), .text(note), .int(id)])
+    }
+
+    func deleteDailyPlan(id: Int) {
+        exec("DELETE FROM daily_plans WHERE id=?", params: [.int(id)])
+    }
+
+    func getActivitiesForDay(date: String) -> [[String: Any]] {
+        let start = "\(date)T00:00:00"
+        let end   = "\(date)T23:59:59"
+        return query(
+            "SELECT id,timestamp,end_time,category,note,detail FROM activities WHERE timestamp>=? AND timestamp<=? ORDER BY timestamp",
+            params: [.text(start), .text(end)]
+        )
     }
 
     private func columnNames(table: String) -> Set<String> {
@@ -234,8 +279,8 @@ final class Database {
     }
 
     func addManual(category: String, note: String, timestamp: String, endTime: String?, detail: String? = nil) {
-        let (s, e) = (timestamp,
-                      Self.isoDate((Self.date(from: timestamp) ?? Date()).addingTimeInterval(15*60)))
+        let s = timestamp
+        let e = endTime ?? Self.isoDate((Self.date(from: timestamp) ?? Date()).addingTimeInterval(15*60))
         exec("DELETE FROM activities WHERE timestamp>=? AND timestamp<?", params: [.text(s), .text(e)])
         exec("INSERT INTO activities (timestamp,category,note,end_time,detail) VALUES (?,?,?,?,?)",
              params: [.text(timestamp), .text(category), .text(note),
@@ -308,8 +353,24 @@ final class Database {
         """, params: [.int(interval), .text(weekAgo)])
     }
 
-    func archiveTopic(id: Int)   { exec("UPDATE focus_topics SET archived=1 WHERE id=?", params: [.int(id)]) }
+    func archiveTopic(id: Int, summary: String? = nil, review: String? = nil) {
+        exec("UPDATE focus_topics SET archived=1, archive_summary=?, archive_review=? WHERE id=?",
+             params: [summary.map { .text($0) } ?? .null,
+                      review.map  { .text($0) } ?? .null,
+                      .int(id)])
+    }
     func unarchiveTopic(id: Int) { exec("UPDATE focus_topics SET archived=0 WHERE id=?", params: [.int(id)]) }
+
+    func getTopicInfo(name: String) -> [String: Any]? {
+        query("SELECT * FROM focus_topics WHERE name=?", params: [.text(name)]).first
+    }
+
+    func getActivitiesByTopicAll(topicName: String) -> [[String: Any]] {
+        query(
+            "SELECT id,timestamp,end_time,category,note,detail FROM activities WHERE note=? ORDER BY timestamp ASC",
+            params: [.text(topicName)]
+        )
+    }
 
     func getFocusTopicsByCategory(_ category: String) -> [[String: Any]] {
         let cutoff = Self.isoDate(Date().addingTimeInterval(-30 * 86400))

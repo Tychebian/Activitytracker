@@ -98,11 +98,17 @@ static let fetchPatchScript = """
         ("GET",    "/api/period_goals",                    APIHandlers.getPeriodGoals),
         ("PUT",    "/api/period_goals",                    APIHandlers.upsertPeriodGoals),
         ("GET",    "/api/export",                 APIHandlers.export),
+        ("GET",    "/api/export_topic",           APIHandlers.exportTopic),
         ("GET",    "/api/tasks",                  APIHandlers.listTasks),
         ("POST",   "/api/tasks",                  APIHandlers.createTask),
         ("PUT",    "/api/tasks/{id}",             APIHandlers.updateTask),
         ("DELETE", "/api/tasks/{id}",             APIHandlers.deleteTask),
         ("POST",   "/api/tasks/{id}/complete",    APIHandlers.completeTask),
+        ("GET",    "/api/daily_plans",            APIHandlers.listDailyPlans),
+        ("POST",   "/api/daily_plans",            APIHandlers.createDailyPlan),
+        ("PUT",    "/api/daily_plans/{id}",       APIHandlers.updateDailyPlan),
+        ("DELETE", "/api/daily_plans/{id}",       APIHandlers.deleteDailyPlan),
+        ("GET",    "/api/day_activities",         APIHandlers.listDayActivities),
     ]
 
     private func route(method: String, path: String, query: [String: String], bodyData: Data?) throws -> APIResponse {
