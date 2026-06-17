@@ -70,10 +70,16 @@ PLIST
 echo "==> Ad-hoc 签名..."
 codesign --force --deep --sign - "$APP" 2>/dev/null || true
 
+echo "==> 安装到 ~/Applications/..."
+INSTALL_DIR="$HOME/Applications"
+mkdir -p "$INSTALL_DIR"
+pkill -x "$APP_NAME" 2>/dev/null || true
+sleep 0.5
+rm -rf "$INSTALL_DIR/$APP_NAME.app"
+cp -R "$APP" "$INSTALL_DIR/$APP_NAME.app"
+open "$INSTALL_DIR/$APP_NAME.app"
+
 echo ""
 echo "╔══════════════════════════════════════════╗"
-echo "║  ✓ 构建完成：build/${APP_NAME}.app       ║"
+echo "║  ✓ 构建完成并已安装：~/Applications/    ║"
 echo "╚══════════════════════════════════════════╝"
-echo ""
-echo "测试运行："
-echo "  open $APP"
