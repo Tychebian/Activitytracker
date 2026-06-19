@@ -63,6 +63,7 @@ final class Database {
         if !ftCols.contains("archived")         { exec("ALTER TABLE focus_topics ADD COLUMN archived INTEGER NOT NULL DEFAULT 0") }
         if !ftCols.contains("archive_summary") { exec("ALTER TABLE focus_topics ADD COLUMN archive_summary TEXT") }
         if !ftCols.contains("archive_review")  { exec("ALTER TABLE focus_topics ADD COLUMN archive_review TEXT") }
+        migrateFocusTopicsUniqueConstraint()
 
         exec("""
             CREATE TABLE IF NOT EXISTS period_goals (
@@ -315,6 +316,39 @@ final class Database {
         return rows.compactMap { $0["note"] as? String }
     }
 
+    // MARK: - Migrations
+
+    // SQLite 不支持 DROP UNIQUE CONSTRAINT，需要重建表。
+    // 旧表：name TEXT UNIQUE（全局唯一）→ 新表：UNIQUE(name, category)（分类内唯一）
+    private func migrateFocusTopicsUniqueConstraint() {
+        let sql = query("SELECT sql FROM sqlite_master WHERE type='table' AND name='focus_topics'")
+                      .first?["sql"] as? String ?? ""
+        guard !sql.contains("UNIQUE(name, category)") else { return }
+        exec("""
+            CREATE TABLE IF NOT EXISTS focus_topics_new (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                name            TEXT NOT NULL,
+                category        TEXT NOT NULL DEFAULT '',
+                priority        TEXT NOT NULL DEFAULT '中',
+                created_at      TEXT NOT NULL,
+                archived        INTEGER NOT NULL DEFAULT 0,
+                archive_summary TEXT,
+                archive_review  TEXT,
+                UNIQUE(name, category)
+            )
+        """)
+        exec("""
+            INSERT OR IGNORE INTO focus_topics_new
+                (id, name, category, priority, created_at, archived, archive_summary, archive_review)
+            SELECT id, name,
+                   COALESCE(category,''), COALESCE(priority,'中'), created_at,
+                   COALESCE(archived,0), archive_summary, archive_review
+            FROM focus_topics
+        """)
+        exec("DROP TABLE focus_topics")
+        exec("ALTER TABLE focus_topics_new RENAME TO focus_topics")
+    }
+
     // MARK: - Focus topics
 
     func getFocusTopicsWithStats(interval: Int) -> [[String: Any]] {
@@ -329,7 +363,7 @@ final class Database {
                    ), 0) AS total_mins,
                    SUM(CASE WHEN a.timestamp>=? THEN 1 ELSE 0 END) AS cnt_7d
             FROM focus_topics ft
-            LEFT JOIN activities a ON a.note=ft.name
+            LEFT JOIN activities a ON a.note=ft.name AND a.category=ft.category
             WHERE ft.archived=0
             GROUP BY ft.id ORDER BY total_mins DESC
         """, params: [.int(interval), .text(weekAgo)])
@@ -347,7 +381,7 @@ final class Database {
                    ), 0) AS total_mins,
                    SUM(CASE WHEN a.timestamp>=? THEN 1 ELSE 0 END) AS cnt_7d
             FROM focus_topics ft
-            LEFT JOIN activities a ON a.note=ft.name
+            LEFT JOIN activities a ON a.note=ft.name AND a.category=ft.category
             WHERE ft.archived=1
             GROUP BY ft.id ORDER BY ft.category, ft.name
         """, params: [.int(interval), .text(weekAgo)])
@@ -377,7 +411,7 @@ final class Database {
         return query("""
             SELECT ft.name, ft.priority, COUNT(a.id) AS cnt
             FROM focus_topics ft
-            LEFT JOIN activities a ON a.note=ft.name AND a.timestamp>?
+            LEFT JOIN activities a ON a.note=ft.name AND a.category=ft.category AND a.timestamp>?
             WHERE ft.category=? GROUP BY ft.id
         """, params: [.text(cutoff), .text(category)])
     }
