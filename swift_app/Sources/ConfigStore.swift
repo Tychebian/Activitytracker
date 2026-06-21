@@ -9,6 +9,13 @@ private struct RawConfig: Codable {
     var categories: [Category]
     var interval: Int
     var auto_popup: Bool
+    var ai_provider: String?
+    var deepseek_api_key: String?
+    var kimi_api_key: String?
+    var ai_prompt: String?
+    var ai_data_days: Int?
+    var ai_frequency: String?
+    var ai_last_run_date: String?
 }
 
 final class ConfigStore {
@@ -58,6 +65,41 @@ final class ConfigStore {
     var autoPopup: Bool {
         get { load().auto_popup }
         set { var c = load(); c.auto_popup = newValue; save(c) }
+    }
+
+    var aiProvider: String {
+        get { load().ai_provider ?? "deepseek" }
+        set { var c = load(); c.ai_provider = newValue; save(c) }
+    }
+
+    var deepseekApiKey: String? {
+        get { load().deepseek_api_key.flatMap { $0.isEmpty ? nil : $0 } }
+        set { var c = load(); c.deepseek_api_key = newValue; save(c) }
+    }
+
+    var kimiApiKey: String? {
+        get { load().kimi_api_key.flatMap { $0.isEmpty ? nil : $0 } }
+        set { var c = load(); c.kimi_api_key = newValue; save(c) }
+    }
+
+    var aiPrompt: String? {
+        get { load().ai_prompt.flatMap { $0.isEmpty ? nil : $0 } }
+        set { var c = load(); c.ai_prompt = newValue; save(c) }
+    }
+
+    var aiDataDays: Int {
+        get { load().ai_data_days ?? 1 }
+        set { var c = load(); c.ai_data_days = max(1, newValue); save(c) }
+    }
+
+    var aiFrequency: String {
+        get { load().ai_frequency ?? "daily" }
+        set { var c = load(); c.ai_frequency = newValue; save(c) }
+    }
+
+    var aiLastRunDate: String? {
+        get { load().ai_last_run_date }
+        set { var c = load(); c.ai_last_run_date = newValue; save(c) }
     }
 
     var categoryColors: [String: String] {

@@ -1,0 +1,93 @@
+/* ── 我的一天 ─────────────────────────────────── */
+.myday-header {
+  display:flex; align-items:center; gap:10px;
+  padding:14px 0 12px; position:sticky; top:0;
+  background:var(--parch); z-index:10; border-bottom:1px solid var(--border);
+  margin-bottom:0;
+}
+.myday-date-nav { display:flex; align-items:center; gap:6px; }
+.myday-date-label { font-size:1rem; font-weight:700; color:var(--ink); min-width:100px; }
+.myday-today-btn {
+  padding:3px 10px; border-radius:12px; border:1px solid var(--border);
+  background:var(--parch); color:var(--ink2); font-size:.78rem; cursor:pointer;
+}
+.myday-today-btn:hover { background:var(--border); }
+.myday-grid-wrap {
+  overflow-y:auto; max-height:calc(100vh - 130px);
+}
+.myday-grid {
+  display:grid;
+  grid-template-columns: 48px 1fr 1fr;
+  min-height:1080px; /* 18h × 60px */
+  position:relative;
+}
+.myday-col-header {
+  position:sticky; top:0; z-index:5;
+  display:grid; grid-template-columns:48px 1fr 1fr;
+  border-bottom:2px solid var(--border);
+  background:var(--parch);
+}
+.myday-col-header > div {
+  padding:8px 12px; font-size:.75rem; font-weight:700;
+  letter-spacing:.06em; color:var(--ink2);
+  text-transform:uppercase;
+}
+.myday-col-header > div:not(:first-child) { border-left:1px solid var(--border); }
+.myday-time-col {
+  grid-column:1; position:relative;
+}
+.myday-plan-col, .myday-actual-col {
+  position:relative; border-left:1px solid var(--border);
+}
+.myday-plan-col { cursor:crosshair; }
+.myday-hour-line {
+  position:absolute; left:0; right:0;
+  height:1px; background:var(--border); opacity:.5;
+  pointer-events:none;
+}
+.myday-hour-label {
+  position:absolute; left:0; right:0;
+  font-size:.68rem; color:var(--ink3);
+  text-align:right; padding-right:6px;
+  transform:translateY(-50%); pointer-events:none;
+}
+.myday-block {
+  position:absolute; left:3px; right:3px;
+  border-radius:5px; overflow:hidden;
+  font-size:.72rem; padding:4px 7px;
+  box-sizing:border-box; line-height:1.35;
+  cursor:pointer; user-select:none;
+  min-height:36px;
+}
+.myday-block-plan {
+  opacity:.85; border:1px solid rgba(0,0,0,.1);
+}
+.myday-block-actual {
+  opacity:.9; border:1px solid rgba(0,0,0,.08);
+}
+.myday-block-resize {
+  position:absolute; bottom:0; left:0; right:0;
+  height:6px; cursor:ns-resize; background:rgba(0,0,0,.12);
+}
+.myday-now-line {
+  position:absolute; left:0; right:0; height:2px;
+  background:var(--crimson); z-index:4; pointer-events:none;
+}
+.myday-now-dot {
+  position:absolute; left:-4px; top:-4px;
+  width:10px; height:10px; border-radius:50%;
+  background:var(--crimson);
+}
+.md-move-btn {
+  position:absolute; top:4px; right:22px;
+  padding:1px 5px; border-radius:3px; border:none;
+  background:rgba(0,0,0,.12); color:var(--ink2);
+  font-size:.62rem; cursor:pointer; white-space:nowrap;
+  line-height:1.5;
+}
+.md-move-btn:hover { background:rgba(0,0,0,.22); color:var(--ink); }
+.myday-gap-overlay {
+  position:absolute; left:3px; right:3px;
+  background:rgba(220,60,60,.08); border-left:2px solid rgba(220,60,60,.3);
+  border-radius:3px; pointer-events:none;
+}

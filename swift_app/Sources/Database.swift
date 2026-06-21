@@ -111,6 +111,34 @@ final class Database {
         """)
         let dpCols = columnNames(table: "daily_plans")
         if !dpCols.contains("topic_name") { exec("ALTER TABLE daily_plans ADD COLUMN topic_name TEXT NOT NULL DEFAULT ''") }
+        let tCols = columnNames(table: "tasks")
+        if !tCols.contains("time_start") { exec("ALTER TABLE tasks ADD COLUMN time_start TEXT") }
+        if !tCols.contains("time_end")   { exec("ALTER TABLE tasks ADD COLUMN time_end TEXT") }
+        let pgCols = columnNames(table: "period_goals")
+        if !pgCols.contains("quote") { exec("ALTER TABLE period_goals ADD COLUMN quote TEXT") }
+        exec("CREATE TABLE IF NOT EXISTS tag_blacklist (tag TEXT PRIMARY KEY)")
+        exec("CREATE TABLE IF NOT EXISTS tag_activity_exclude (tag TEXT NOT NULL, activity_id INTEGER NOT NULL, PRIMARY KEY (tag, activity_id))")
+        exec("""
+            CREATE TABLE IF NOT EXISTS ai_wisdom (
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                generated_at TEXT NOT NULL,
+                prompt_used  TEXT NOT NULL,
+                data_days    INTEGER NOT NULL DEFAULT 1,
+                content      TEXT NOT NULL
+            )
+        """)
+    }
+
+    // MARK: - AI Wisdom
+
+    func addWisdom(content: String, prompt: String, dataDays: Int) {
+        exec("INSERT INTO ai_wisdom (generated_at, prompt_used, data_days, content) VALUES (?,?,?,?)",
+             params: [.text(Self.isoNow()), .text(prompt), .int(dataDays), .text(content)])
+    }
+
+    func listWisdom(limit: Int = 30) -> [[String: Any]] {
+        query("SELECT id, generated_at, prompt_used, data_days, content FROM ai_wisdom ORDER BY generated_at DESC LIMIT ?",
+              params: [.int(limit)])
     }
 
     // MARK: - Daily Plans
@@ -277,6 +305,13 @@ final class Database {
     func patchDetail(id: Int, detail: String?) {
         exec("UPDATE activities SET detail=? WHERE id=?",
              params: [detail.map { .text($0) } ?? .null, .int(id)])
+    }
+
+    func getConflicts(start: String, end: String) -> [[String: Any]] {
+        query(
+            "SELECT id, timestamp, end_time, category, note FROM activities WHERE timestamp>=? AND timestamp<? ORDER BY timestamp ASC",
+            params: [.text(start), .text(end)]
+        )
     }
 
     func addManual(category: String, note: String, timestamp: String, endTime: String?, detail: String? = nil) {
@@ -477,19 +512,86 @@ final class Database {
               params: [.text(period), .text(key)]).first
     }
 
-    func upsertPeriodGoals(period: String, key: String, g1: String?, g2: String?, g3: String?) {
+    func upsertPeriodGoals(period: String, key: String, g1: String?, g2: String?, g3: String?, quote: String? = nil) {
         func v(_ s: String?) -> SQLVal { s.map { .text($0) } ?? .null }
         exec("""
-            INSERT INTO period_goals (period, period_key, goal_1, goal_2, goal_3, updated_at)
-            VALUES (?,?,?,?,?, datetime('now','localtime'))
+            INSERT INTO period_goals (period, period_key, goal_1, goal_2, goal_3, quote, updated_at)
+            VALUES (?,?,?,?,?,?, datetime('now','localtime'))
             ON CONFLICT(period, period_key) DO UPDATE SET
-                goal_1=excluded.goal_1, goal_2=excluded.goal_2, goal_3=excluded.goal_3,
+                goal_1=excluded.goal_1,
+                goal_2=COALESCE(excluded.goal_2, goal_2),
+                goal_3=COALESCE(excluded.goal_3, goal_3),
+                quote=COALESCE(excluded.quote, quote),
                 updated_at=excluded.updated_at
-        """, params: [.text(period), .text(key), v(g1), v(g2), v(g3)])
+        """, params: [.text(period), .text(key), v(g1), v(g2), v(g3), v(quote)])
+    }
+
+    func upsertDailyQuote(key: String, quote: String?) {
+        func v(_ s: String?) -> SQLVal { s.map { .text($0) } ?? .null }
+        exec("""
+            INSERT INTO period_goals (period, period_key, quote, updated_at)
+            VALUES ('day',?, ?, datetime('now','localtime'))
+            ON CONFLICT(period, period_key) DO UPDATE SET
+                quote=excluded.quote, updated_at=excluded.updated_at
+        """, params: [.text(key), v(quote)])
     }
 
     func listPeriodGoalsArchive() -> [[String: Any]] {
         query("SELECT * FROM period_goals ORDER BY period, period_key DESC")
+    }
+
+    func listDailyQuotes() -> [[String: Any]] {
+        query("SELECT period_key, quote, updated_at FROM period_goals WHERE period='day' AND quote IS NOT NULL AND quote != '' ORDER BY period_key DESC")
+    }
+
+    func listAllTags() -> [[String: Any]] {
+        let rows = query(
+            "SELECT note, detail FROM activities WHERE note LIKE '%#%' OR (detail IS NOT NULL AND detail LIKE '%#%')"
+        )
+        let blacklist = Set(query("SELECT tag FROM tag_blacklist").compactMap { $0["tag"] as? String })
+        var counts: [String: Int] = [:]
+        guard let pattern = try? NSRegularExpression(pattern: "#([^\\s#]+)") else { return [] }
+        for row in rows {
+            var tagsInRow: Set<String> = []
+            for key in ["note", "detail"] {
+                guard let text = row[key] as? String, text.contains("#") else { continue }
+                let nsText = text as NSString
+                let range = NSRange(location: 0, length: nsText.length)
+                for match in pattern.matches(in: text, range: range) {
+                    if let r = Range(match.range(at: 1), in: text) {
+                        tagsInRow.insert(String(text[r]))
+                    }
+                }
+            }
+            for tag in tagsInRow where !blacklist.contains(tag) {
+                counts[tag, default: 0] += 1
+            }
+        }
+        return counts
+            .map { ["tag": $0.key, "count": $0.value] }
+            .sorted { ($0["count"] as! Int) > ($1["count"] as! Int) }
+    }
+
+    func deleteTag(tag: String) {
+        exec("INSERT OR IGNORE INTO tag_blacklist (tag) VALUES (?)", params: [.text(tag)])
+    }
+
+    func excludeTagActivity(tag: String, activityId: Int) {
+        exec("INSERT OR IGNORE INTO tag_activity_exclude (tag, activity_id) VALUES (?,?)",
+             params: [.text(tag), .int(activityId)])
+    }
+
+    func listTaggedActivities(tag: String) -> [[String: Any]] {
+        let p = SQLVal.text("%#\(tag)%")
+        return query(
+            """
+            SELECT id, timestamp, end_time, category, note, detail FROM activities
+            WHERE (note LIKE ? OR detail LIKE ?)
+              AND id NOT IN (SELECT activity_id FROM tag_activity_exclude WHERE tag=?)
+            ORDER BY timestamp DESC
+            """,
+            params: [p, p, .text(tag)]
+        )
     }
 
     // MARK: - Tasks
@@ -509,14 +611,16 @@ final class Database {
         query("SELECT * FROM tasks WHERE id=?", params: [.int(id)]).first
     }
 
-    func addTask(title: String, topicName: String, category: String, scope: String, scopeDate: String) {
-        exec("INSERT INTO tasks (title,topic_name,category,scope,scope_date,created_at) VALUES (?,?,?,?,?,?)",
+    func addTask(title: String, topicName: String, category: String, scope: String, scopeDate: String,
+                 timeStart: String? = nil, timeEnd: String? = nil) {
+        func v(_ s: String?) -> SQLVal { s.map { .text($0) } ?? .null }
+        exec("INSERT INTO tasks (title,topic_name,category,scope,scope_date,time_start,time_end,created_at) VALUES (?,?,?,?,?,?,?,?)",
              params: [.text(title), .text(topicName), .text(category),
-                      .text(scope), .text(scopeDate), .text(Self.isoNow())])
+                      .text(scope), .text(scopeDate), v(timeStart), v(timeEnd), .text(Self.isoNow())])
     }
 
     func updateTask(id: Int, title: String?, topicName: String?, category: String?,
-                    scope: String?, scopeDate: String?) {
+                    scope: String?, scopeDate: String?, timeStart: String? = nil, timeEnd: String? = nil) {
         var sets: [String] = []
         var params: [SQLVal] = []
         if let v = title      { sets.append("title=?");      params.append(.text(v)) }
@@ -524,6 +628,8 @@ final class Database {
         if let v = category   { sets.append("category=?");   params.append(.text(v)) }
         if let v = scope      { sets.append("scope=?");      params.append(.text(v)) }
         if let v = scopeDate  { sets.append("scope_date=?"); params.append(.text(v)) }
+        if let v = timeStart  { sets.append("time_start=?"); params.append(.text(v)) }
+        if let v = timeEnd    { sets.append("time_end=?");   params.append(.text(v)) }
         guard !sets.isEmpty else { return }
         params.append(.int(id))
         exec("UPDATE tasks SET \(sets.joined(separator: ",")) WHERE id=?", params: params)

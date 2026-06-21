@@ -71,13 +71,13 @@ enum APIHandlers {
         let cats    = ConfigStore.shared.categories
         let iv      = ConfigStore.shared.interval
         let topics  = Database.shared.getFocusTopicsWithStats(interval: iv)
-        let prios   = Dictionary(uniqueKeysWithValues: topics.compactMap { t -> (String, String)? in
+        let prios   = Dictionary(topics.compactMap { t -> (String, String)? in
             guard let n = t["name"] as? String, let p = t["priority"] as? String else { return nil }
             return (n, p)
-        })
+        }, uniquingKeysWith: { first, _ in first })
         return try .json([
             "categories":       cats.map { $0.name },
-            "colors":           Dictionary(uniqueKeysWithValues: cats.map { ($0.name, $0.color) }),
+            "colors":           Dictionary(cats.map { ($0.name, $0.color) }, uniquingKeysWith: { first, _ in first }),
             "topic_priorities": prios,
             "version":          ConfigStore.version,
         ])
@@ -162,6 +162,16 @@ enum APIHandlers {
         Database.shared.patchDetail(id: id, detail: detail)
         return try .json(["ok": true])
     }
+    static func checkManualConflicts(_ r: Req) throws -> APIResponse {
+        guard let dateStr = r.str("date"),
+              let timeStr = r.str("time") else { throw APIError.bad("date and time required") }
+        let ts      = "\(dateStr)T\(timeStr):00"
+        let endTime = r.str("end_time")
+        let e       = endTime ?? Database.isoDate((Database.date(from: ts) ?? Date()).addingTimeInterval(15*60))
+        let rows    = Database.shared.getConflicts(start: ts, end: e)
+        return try .json(["conflicts": rows.map { nullToNil($0) }])
+    }
+
     static func addManual(_ r: Req) throws -> APIResponse {
         guard let dateStr = r.str("date"),
               let timeStr = r.str("time"),
@@ -207,10 +217,10 @@ enum APIHandlers {
         let start = "\(month)-01"
         let end   = m == 12 ? "\(year+1)-01-01" : String(format: "%04d-%02d-01", year, m+1)
         let rows  = Database.shared.monthStats(month: month, start: start, end: end)
-        let dict  = Dictionary(uniqueKeysWithValues: rows.compactMap { row -> (String, Int)? in
+        let dict  = Dictionary(rows.compactMap { row -> (String, Int)? in
             guard let day = row["day"] as? String, let cnt = row["cnt"] as? Int else { return nil }
             return (day, cnt)
-        })
+        }, uniquingKeysWith: { first, _ in first })
         return try .json(dict)
     }
 
@@ -284,11 +294,38 @@ enum APIHandlers {
     static func upsertPeriodGoals(_ r: Req) throws -> APIResponse {
         guard let period = r.str("period"), let key = r.str("key") else { throw APIError.bad("period and key required") }
         Database.shared.upsertPeriodGoals(period: period, key: key,
-                                          g1: r.str("goal_1"), g2: r.str("goal_2"), g3: r.str("goal_3"))
+                                          g1: r.str("goal_1"), g2: r.str("goal_2"), g3: r.str("goal_3"),
+                                          quote: r.str("quote"))
+        return try .json(["ok": true])
+    }
+    static func upsertDailyQuote(_ r: Req) throws -> APIResponse {
+        guard let key = r.str("key") else { throw APIError.bad("key required") }
+        Database.shared.upsertDailyQuote(key: key, quote: r.str("quote"))
         return try .json(["ok": true])
     }
     static func listPeriodGoalsArchive(_ r: Req) throws -> APIResponse {
         return try .json(Database.shared.listPeriodGoalsArchive().map { nullToNil($0) })
+    }
+    static func listDailyQuotes(_ r: Req) throws -> APIResponse {
+        return try .json(Database.shared.listDailyQuotes().map { nullToNil($0) })
+    }
+    static func listAllTags(_ r: Req) throws -> APIResponse {
+        return try .json(Database.shared.listAllTags())
+    }
+    static func deleteTag(_ r: Req) throws -> APIResponse {
+        guard let tag = r.q("tag"), !tag.isEmpty else { throw APIError.bad("tag required") }
+        Database.shared.deleteTag(tag: tag)
+        return try .json(["ok": true])
+    }
+    static func excludeTagActivity(_ r: Req) throws -> APIResponse {
+        guard let tag = r.str("tag"), !tag.isEmpty else { throw APIError.bad("tag required") }
+        guard let aid = r.body["activity_id"] as? Int else { throw APIError.bad("activity_id required") }
+        Database.shared.excludeTagActivity(tag: tag, activityId: aid)
+        return try .json(["ok": true])
+    }
+    static func listTaggedActivities(_ r: Req) throws -> APIResponse {
+        let tag = r.q("tag") ?? "资讯"
+        return try .json(Database.shared.listTaggedActivities(tag: tag).map { nullToNil($0) })
     }
 
     // ── /api/export ───────────────────────────────────────────
@@ -298,10 +335,10 @@ enum APIHandlers {
         let acts   = Database.shared.getActivities(start: start, end: "\(end)T23:59:59")
         let topics = Database.shared.getFocusTopicsWithStats(interval: iv)
         let prioLabel = ["高": "★高", "中": "◆中", "低": "▽低"]
-        let topicMap  = Dictionary(uniqueKeysWithValues: topics.compactMap { t -> (String, [String:Any])? in
+        let topicMap  = Dictionary(topics.compactMap { t -> (String, [String:Any])? in
             guard let n = t["name"] as? String else { return nil }
             return (n, t)
-        })
+        }, uniquingKeysWith: { first, _ in first })
 
         func durMins(_ a: [String: Any]) -> Int {
             if let et = a["end_time"] as? String,
@@ -525,9 +562,18 @@ enum APIHandlers {
         let category  = r.str("category")  ?? ""
         let scope     = r.str("scope")     ?? "day"
         let scopeDate = r.str("scope_date") ?? ""
+        let timeStart = r.str("time_start")
+        let timeEnd   = r.str("time_end")
         guard ["day","week","month"].contains(scope) else { throw APIError.bad("invalid scope") }
         Database.shared.addTask(title: title, topicName: topicName, category: category,
-                                scope: scope, scopeDate: scopeDate)
+                                scope: scope, scopeDate: scopeDate,
+                                timeStart: timeStart, timeEnd: timeEnd)
+        // If time range provided on a day task, auto-create a daily_plan entry
+        if let ts = timeStart, !ts.isEmpty, let te = timeEnd, !te.isEmpty,
+           scope == "day", !scopeDate.isEmpty {
+            Database.shared.addDailyPlan(date: scopeDate, startTime: ts, endTime: te,
+                                         category: category, topicName: topicName, note: title)
+        }
         return try .json(["ok": true, "id": Database.shared.lastInsertRowID])
     }
 
@@ -538,9 +584,12 @@ enum APIHandlers {
         let category  = r.str("category")
         let scope     = r.str("scope")
         let scopeDate = r.str("scope_date")
+        let timeStart = r.str("time_start")
+        let timeEnd   = r.str("time_end")
         if let s = scope, !["day","week","month"].contains(s) { throw APIError.bad("invalid scope") }
         Database.shared.updateTask(id: id, title: title, topicName: topicName,
-                                   category: category, scope: scope, scopeDate: scopeDate)
+                                   category: category, scope: scope, scopeDate: scopeDate,
+                                   timeStart: timeStart, timeEnd: timeEnd)
         return try .json(["ok": true])
     }
 
@@ -603,6 +652,171 @@ enum APIHandlers {
     static func listDayActivities(_ r: Req) throws -> APIResponse {
         guard let date = r.q("date") else { throw APIError.bad("date required") }
         return try .json(Database.shared.getActivitiesForDay(date: date))
+    }
+
+    // MARK: - AI Assistant (DeepSeek / Kimi)
+
+    static func getAiConfig(_ r: Req) throws -> APIResponse {
+        return try .json([
+            "provider":             ConfigStore.shared.aiProvider,
+            "deepseek_configured":  ConfigStore.shared.deepseekApiKey != nil,
+            "kimi_configured":      ConfigStore.shared.kimiApiKey != nil,
+            "prompt":               ConfigStore.shared.aiPrompt ?? "",
+            "data_days":            ConfigStore.shared.aiDataDays,
+            "frequency":            ConfigStore.shared.aiFrequency,
+            "last_run_date":        ConfigStore.shared.aiLastRunDate ?? "",
+        ] as [String: Any])
+    }
+
+    static func setAiConfig(_ r: Req) throws -> APIResponse {
+        if let provider = r.str("provider") { ConfigStore.shared.aiProvider = provider }
+        if let key = r.body["deepseek_key"] as? String {
+            ConfigStore.shared.deepseekApiKey = key.isEmpty ? nil : key
+        }
+        if let key = r.body["kimi_key"] as? String {
+            ConfigStore.shared.kimiApiKey = key.isEmpty ? nil : key
+        }
+        if let prompt = r.body["prompt"] as? String {
+            ConfigStore.shared.aiPrompt = prompt.isEmpty ? nil : prompt
+        }
+        if let days = r.body["data_days"] as? Int {
+            ConfigStore.shared.aiDataDays = days
+        }
+        if let freq = r.str("frequency") {
+            ConfigStore.shared.aiFrequency = freq
+        }
+        return try .json(["ok": true])
+    }
+
+    static func listWisdom(_ r: Req) throws -> APIResponse {
+        return try .json(Database.shared.listWisdom())
+    }
+
+    static func runPrompt(_ r: Req) throws -> APIResponse {
+        guard let prompt = ConfigStore.shared.aiPrompt, !prompt.isEmpty else {
+            throw APIError.bad("prompt 未配置，请先在「AI助手设置」中填写 prompt 植入")
+        }
+        let providerName = ConfigStore.shared.aiProvider
+        guard let provider = AIClient.Provider(rawValue: providerName) else {
+            throw APIError.bad("unknown provider: \(providerName)")
+        }
+        let apiKey: String
+        switch provider {
+        case .deepseek:
+            guard let k = ConfigStore.shared.deepseekApiKey else { throw APIError.bad("DeepSeek API Key 未配置") }
+            apiKey = k
+        case .kimi:
+            guard let k = ConfigStore.shared.kimiApiKey else { throw APIError.bad("Kimi API Key 未配置") }
+            apiKey = k
+        }
+
+        let dataDays = ConfigStore.shared.aiDataDays
+        let iv       = ConfigStore.shared.interval
+        let stats    = Database.shared.categoryStats(
+            start: Database.isoDate(Date().addingTimeInterval(Double(-dataDays) * 86400)),
+            end:   Database.isoDate(Date()),
+            interval: iv
+        )
+        let topics = Database.shared.getFocusTopicsWithStats(interval: iv)
+
+        var ctx = "## 近\(dataDays)天活动统计\n"
+        for s in stats {
+            if let cat = s["category"] as? String, let mins = s["total_mins"] as? Int {
+                ctx += "- \(cat): \(mins/60)h\(mins%60)m\n"
+            }
+        }
+        ctx += "\n## 当前关注主题\n"
+        for t in topics {
+            if let name = t["name"] as? String, let cat = t["category"] as? String {
+                let mins = t["total_mins"] as? Int ?? 0
+                ctx += "- [\(cat)] \(name)（累计 \(mins/60)h）\n"
+            }
+        }
+
+        let system = """
+        你是用户的个人时间管理顾问。以下是用户的活动数据：
+
+        \(ctx)
+
+        请严格按照用户的指令执行任务，结合以上数据给出回答。用中文回答，语言简洁直接。
+        """
+
+        let messages: [[String: Any]] = [["role": "user", "content": prompt]]
+        let content = try AIClient.chat(provider: provider, apiKey: apiKey,
+                                        system: system, history: messages)
+
+        Database.shared.addWisdom(content: content, prompt: prompt, dataDays: dataDays)
+        ConfigStore.shared.aiLastRunDate = String(Database.isoNow().prefix(10))
+
+        return try .json(["ok": true, "content": content, "generated_at": Database.isoNow()] as [String: Any])
+    }
+
+    static func aiChat(_ r: Req) throws -> APIResponse {
+        guard let userMsg = r.str("message") else { throw APIError.bad("message required") }
+        let providerName = r.str("provider") ?? ConfigStore.shared.aiProvider
+
+        guard let provider = AIClient.Provider(rawValue: providerName) else {
+            throw APIError.bad("unknown provider: \(providerName)")
+        }
+        let apiKey: String
+        switch provider {
+        case .deepseek:
+            guard let k = ConfigStore.shared.deepseekApiKey else {
+                throw APIError.bad("DeepSeek API Key 未配置")
+            }
+            apiKey = k
+        case .kimi:
+            guard let k = ConfigStore.shared.kimiApiKey else {
+                throw APIError.bad("Kimi API Key 未配置")
+            }
+            apiKey = k
+        }
+
+        // Build activity context from DB
+        let iv     = ConfigStore.shared.interval
+        let stats  = Database.shared.categoryStats(
+            start: Database.isoDate(Date().addingTimeInterval(-30 * 86400)),
+            end:   Database.isoDate(Date()),
+            interval: iv
+        )
+        let topics = Database.shared.getFocusTopicsWithStats(interval: iv)
+
+        var ctx = "## 用户近30天活动统计\n"
+        for s in stats {
+            if let cat = s["category"] as? String, let mins = s["total_mins"] as? Int {
+                ctx += "- \(cat): \(mins/60)h\(mins%60)m\n"
+            }
+        }
+        ctx += "\n## 当前关注主题\n"
+        for t in topics {
+            if let name = t["name"] as? String, let cat = t["category"] as? String {
+                let mins = t["total_mins"] as? Int ?? 0
+                ctx += "- [\(cat)] \(name)（累计 \(mins/60)h）\n"
+            }
+        }
+
+        let system = """
+        你是用户的个人时间管理顾问。用户用 ActivityTracker 记录每天的时间使用情况。
+
+        \(ctx)
+
+        根据用户的问题，结合以上数据给出个性化建议。重点方向：
+        - 推荐具体的学习资料（书籍、课程、文章、论文）
+        - 推荐音频/视频资源（播客、YouTube 频道、B 站 UP 主、在线课程平台）
+        - 建议要具体可执行，附上名称和理由，不要泛泛而谈
+        用中文回答，语言简洁直接。
+        """
+
+        let history  = r.body["history"] as? [[String: Any]] ?? []
+        var messages = history
+        messages.append(["role": "user", "content": userMsg])
+
+        let reply = try AIClient.chat(provider: provider, apiKey: apiKey,
+                                      system: system, history: messages)
+
+        var updated = messages
+        updated.append(["role": "assistant", "content": reply])
+        return try .json(["reply": reply, "history": updated])
     }
 
     // MARK: - Helpers

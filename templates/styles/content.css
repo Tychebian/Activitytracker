@@ -1,0 +1,160 @@
+/* ══════════════════════
+   CATEGORY SUMMARY CARDS
+   ══════════════════════ */
+.cat-row {
+  display: flex; gap: 8px; margin-bottom: 14px;
+  width: 100%;
+}
+.cat-card {
+  flex: 1; min-width: 0;
+  background: var(--parch2);
+  border: 1px solid var(--border);
+  border-top: 3px solid;
+  border-radius: 6px;
+  padding: 9px 10px;
+  box-shadow: var(--shadow);
+  transition: box-shadow .12s;
+}
+.cat-card:hover { box-shadow: var(--shadow-lg); }
+.cat-card.dim { opacity: .7; }
+.cc-name { font-size: .68rem; font-weight: 700; letter-spacing: .06em; margin-bottom: 3px; }
+.cc-time { font-size: .95rem; font-weight: 800; }
+.cc-cnt  { font-size: .65rem; color: var(--ink2); margin-top: 1px; }
+
+/* ══════════════════
+   TOP NOTES
+   ══════════════════ */
+.section-title {
+  font-size: .68rem; font-weight: 700; letter-spacing: .15em;
+  color: var(--ink3); text-transform: uppercase;
+  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+}
+.section-title::before, .section-title::after {
+  content: ''; flex: 1; height: 1px; background: var(--border2);
+}
+.tnote-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 12px; background: var(--parch2);
+  border: 1px solid var(--border2); border-radius: 5px;
+  margin: 4px 0; box-shadow: var(--shadow);
+}
+.tnote-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.tnote-note { flex: 1; font-size: .85rem; color: var(--ink2); }
+.tnote-bar-wrap { width: 80px; height: 5px; background: var(--parch3); border-radius: 3px; overflow: hidden; }
+.tnote-bar { height: 100%; border-radius: 3px; }
+.tnote-cnt  { font-size: .75rem; font-weight: 700; min-width: 28px; text-align: right; }
+.tnote-dur  { font-size: .68rem; color: var(--ink3); min-width: 44px; text-align: right; }
+.topic-badge {
+  display: inline-block; background: var(--crimson); color: #fff;
+  border-radius: 9px; font-size: .58rem; padding: 1px 5px; margin-left: 5px;
+  vertical-align: middle; font-weight: 700; line-height: 1.5;
+}
+
+/* ══════════════════
+   ACTIVITY ROWS
+   ══════════════════ */
+.act-row {
+  display: flex; flex-direction: column;
+  padding: 8px 12px; background: var(--parch2);
+  border: 1px solid var(--border2); border-left: 3px solid;
+  border-radius: 0 6px 6px 0; margin: 3px 0;
+  cursor: pointer; box-shadow: var(--shadow); transition: background .1s;
+}
+.act-row:hover { background: var(--parch3); }
+.act-row-main { display: flex; align-items: center; gap: 8px; }
+.act-time { font-family: var(--font-mono); font-size: .76rem; color: var(--ink3);
+            width: 40px; flex-shrink: 0; white-space: nowrap; }
+.cat-pill {
+  font-size: .66rem; font-weight: 700; padding: 2px 7px;
+  border-radius: 3px; background: var(--parch3);
+  white-space: nowrap; letter-spacing: .04em; flex-shrink: 0;
+}
+.act-note { flex: 1; font-size: .85rem; color: var(--ink2); min-width: 0;
+            display: flex; align-items: center; gap: 4px; overflow: hidden; }
+.act-note-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.edit-btn {
+  opacity: 0; font-size: .75rem; color: var(--ink3);
+  background: none; border: none; cursor: pointer;
+  padding: 2px 6px; border-radius: 3px; transition: opacity .1s;
+}
+.act-row:hover .edit-btn { opacity: 1; }
+.edit-btn:hover { background: var(--parch3); }
+.act-dur { font-family:var(--font-mono); font-size:.7rem; color:var(--ink3);
+           margin-left:auto; flex-shrink:0; white-space:nowrap; }
+
+/* 推算结束时间（淡色 + 斜体表示非实际值） */
+.est-time { color: var(--ink3) !important; font-style: italic; }
+
+/* 行内 detail 备注（在 act-row 内部第二行） */
+.act-detail-input {
+  width: 100%; border: none; background: transparent;
+  font-size: .75rem; color: var(--ink2);
+  padding: 4px 0 0 0; margin-top: 4px;
+  border-top: 1px dashed var(--border2);
+  outline: none; font-family: inherit; cursor: text;
+  resize: none; overflow: hidden; display: block;
+  line-height: 1.5;
+}
+.act-detail-input::placeholder { color: var(--ink3); opacity: .45; font-style: italic; }
+.act-detail-input:focus { border-top-color: var(--gold); color: var(--ink); }
+.act-detail-input.saved { border-top-color: var(--gold); color: var(--ink); transition: border-top-color .4s; }
+
+/* ══════════════════
+   WEEK DAY CARDS
+   ══════════════════ */
+.week-day {
+  background: var(--parch2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 14px 16px; margin: 6px 0;
+  box-shadow: var(--shadow);
+}
+.week-day.today-card { border-color: var(--crimson); box-shadow: 0 0 8px rgba(232,52,10,.15); }
+.cat-bar { height: 6px; border-radius: 3px; display: flex; overflow: hidden; gap: 2px; margin-top: 6px; }
+.cat-bar-seg { border-radius: 3px; }
+
+/* ══════════════════
+   CALENDAR
+   ══════════════════ */
+.cal-grid {
+  background: var(--parch2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px; box-shadow: var(--shadow);
+}
+.cal-header { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; margin-bottom: 8px; }
+.cal-dh { text-align: center; color: var(--ink3); font-size: .67rem; padding: 2px; }
+.cal-cells { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; }
+.cal-cell {
+  aspect-ratio: 1; border-radius: 5px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 38px; transition: transform .1s, filter .1s;
+}
+.cal-cell:hover { transform: scale(1.08); filter: brightness(.92); }
+.cal-cell.today-cell { outline: 2px solid var(--crimson); outline-offset: 1px; }
+.cal-num  { font-size: .76rem; font-weight: 500; }
+.cal-cnt  { font-size: .58rem; opacity: .8; }
+
+/* ══════════════════
+   STAT CARDS (month)
+   ══════════════════ */
+.stat-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-top: 12px; }
+.stat-card {
+  background: var(--parch2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px; text-align: center; box-shadow: var(--shadow);
+}
+.stat-val { font-size: 1.15rem; font-weight: 800; color: var(--crimson); }
+.stat-lbl { font-size: .68rem; color: var(--ink3); margin-top: 2px; }
+
+/* 优先级徽章 */
+.prio-badge {
+  display: inline-block; font-size: .6rem; font-weight: 700;
+  color: #fff; padding: 1px 5px; border-radius: 3px;
+  letter-spacing: .04em; vertical-align: middle; margin-left: 4px; flex-shrink: 0;
+}
+/* 优先级按钮组（设置面板用） */
+.prio-btn {
+  padding: 2px 8px; border-radius: 4px; border: 1.5px solid var(--border);
+  background: none; font-size: .7rem; font-weight: 700; cursor: pointer;
+  color: var(--ink3); transition: all .12s;
+}
+.prio-btn:hover { border-color: currentColor; }
+.prio-btn.active-高 { background: #c8320a; border-color: #c8320a; color: #fff; }
+.prio-btn.active-中 { background: #b07a10; border-color: #b07a10; color: #fff; }
+.prio-btn.active-低 { background: #888; border-color: #888; color: #fff; }

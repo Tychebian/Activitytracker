@@ -1,0 +1,40 @@
+/* ═══════════════════════════════════════════════════════
+   SLAYERS — 秀逗魔導士  color system
+   Parchment · Crimson · Purple · Gold
+   ═══════════════════════════════════════════════════════ */
+:root {
+  --font-sans: -apple-system, "PingFang SC", "Hiragino Sans GB", "Hiragino Sans", sans-serif;
+  --font-mono: "SF Mono", "Menlo", monospace;
+  --parch:    #f2f2f7;   /* system light gray */
+  --parch2:   #ffffff;   /* white card */
+  --parch3:   #e5e5ea;   /* hover */
+  --ink:      #1c1c1e;
+  --ink2:     #3a3a3c;
+  --ink3:     #6e6e73;
+  --crimson:  #e8340a;   /* Lina's fireball */
+  --purple:   #8944ab;   /* shadow magic */
+  --gold:     #d4a017;   /* spell circle */
+  --gold2:    #f0c930;
+  --blue:     #0071e3;   /* freeze arrow */
+  --border:   #e5e5ea;
+  --border2:  #f0f0f5;
+  --glow:     rgba(212,160,23,.18);
+  --shadow:   0 1px 4px rgba(0,0,0,.08);
+  --shadow-lg:0 4px 20px rgba(0,0,0,.12);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--parch);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+}
+
+/* ── parchment texture ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background-image:
+    radial-gradient(ellipse at 20% 10%, rgba(212,160,23,.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 90%, rgba(232,52,10,.03) 0%, transparent 50%);
+}

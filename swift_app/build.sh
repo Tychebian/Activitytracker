@@ -20,6 +20,7 @@ swiftc \
   "$SRC/Database.swift" \
   "$SRC/ConfigStore.swift" \
   "$SRC/APIHandlers.swift" \
+  "$SRC/AIClient.swift" \
   "$SRC/SchemeHandler.swift" \
   "$SRC/ActivityDialog.swift" \
   "$SRC/AppDelegate.swift" \
@@ -42,6 +43,7 @@ mkdir -p "$MACOS" "$RES"
 
 cp "$BUILD/$APP_NAME" "$MACOS/"
 cp "$PROJECT_DIR/templates/index.html" "$RES/"
+cp -R "$PROJECT_DIR/templates/styles" "$RES/"
 
 # 图标
 ICON="$SCRIPT_DIR/Resources/AppIcon.icns"

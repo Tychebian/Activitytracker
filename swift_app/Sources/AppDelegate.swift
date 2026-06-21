@@ -158,24 +158,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         win.delegate          = self
         win.center()
 
-        // WebView + custom scheme
+        // WebView + JS↔Swift message bridge
         let cfg = WKWebViewConfiguration()
-        cfg.setURLSchemeHandler(SchemeHandler(), forURLScheme: "activitytracker")
-
-        // Patch fetch() to pass body via header (WKWebView strips httpBody)
-        let script = WKUserScript(source: SchemeHandler.fetchPatchScript,
-                                  injectionTime: .atDocumentStart,
-                                  forMainFrameOnly: true)
-        cfg.userContentController.addUserScript(script)
-
+        cfg.userContentController.addScriptMessageHandler(
+            BridgeHandler(), contentWorld: .page, name: "bridge"
+        )
 
         let wv = WKWebView(frame: win.contentView!.bounds, configuration: cfg)
         wv.autoresizingMask = [.width, .height]
         wv.navigationDelegate = self
         win.contentView?.addSubview(wv)
 
-        // Load entry point — relative fetch('/api/…') resolves to activitytracker://app/api/…
-        wv.load(URLRequest(url: URL(string: "activitytracker://app/")!))
+        // Load HTML directly from bundle (no custom URL scheme needed)
+        if let htmlURL = Bundle.main.url(forResource: "index", withExtension: "html") {
+            wv.loadFileURL(htmlURL, allowingReadAccessTo: htmlURL.deletingLastPathComponent())
+        }
         self.webView = wv
         return win
     }

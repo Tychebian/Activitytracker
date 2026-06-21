@@ -1,0 +1,52 @@
+/* ══════════════════
+   MODALS
+   ══════════════════ */
+.overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.32); backdrop-filter: blur(4px);
+  z-index: 100; align-items: center; justify-content: center;
+}
+.overlay.open { display: flex; }
+.mbox {
+  background: var(--parch);
+  border: 2px solid var(--border);
+  border-radius: 10px; padding: 26px;
+  box-shadow: var(--shadow-lg);
+  width: 440px; max-width: 92vw;
+  position: relative;
+}
+/* decorative corner runes */
+.mbox::before {
+  content: '✦';
+  position: absolute; top: 10px; left: 14px;
+  color: var(--gold); font-size: .65rem; opacity: .6;
+}
+.mbox::after {
+  content: '✦';
+  position: absolute; top: 10px; right: 14px;
+  color: var(--gold); font-size: .65rem; opacity: .6;
+}
+.mbox-title {
+  font-size: .9rem; font-weight: 700; color: var(--ink2);
+  letter-spacing: .08em; margin-bottom: 16px; text-align: center;
+}
+.m-cat {
+  padding: 5px 12px; border-radius: 4px;
+  border: 1px solid var(--border2); cursor: pointer;
+  font-size: .78rem; font-weight: 600; transition: all .1s;
+  background: var(--parch2); color: var(--ink2); letter-spacing: .04em;
+}
+.m-cat.sel { border-color: var(--sel-c); color: var(--sel-c); background: var(--sel-bg); }
+.m-cat:hover { border-color: var(--sel-c); color: var(--sel-c); }
+.m-input {
+  width: 100%; background: var(--parch2); border: 1px solid var(--border);
+  color: var(--ink); border-radius: 5px; padding: 8px 12px;
+  font-size: .88rem; outline: none; transition: border-color .12s; margin-top: 12px;
+}
+.m-input:focus { border-color: var(--crimson); }
+.m-label { font-size:.72rem; color:var(--ink3); letter-spacing:.06em; display:block; margin-bottom:4px; font-weight:600; }
+.m-btn-row { display: flex; gap: 8px; margin-top: 18px; align-items: center; }
+.btn-del    { padding: 7px 14px; border-radius: 5px; font-size: .8rem; cursor: pointer; background: #fde8e0; color: #a02808; border: 1px solid #f5c0a8; }
+.btn-cancel { padding: 7px 14px; border-radius: 5px; font-size: .8rem; cursor: pointer; background: var(--parch2); color: var(--ink2); border: 1px solid var(--border); }
+.btn-save   { padding: 7px 18px; border-radius: 5px; font-size: .8rem; cursor: pointer; background: var(--crimson); color: #fff; border: none; font-weight: 700; box-shadow: 0 0 6px rgba(232,52,10,.2); }
+.btn-add    { padding: 6px 14px; border-radius: 5px; font-size: .8rem; cursor: pointer; background: var(--gold); color: #fff; border: none; font-weight: 600; white-space: nowrap; }
